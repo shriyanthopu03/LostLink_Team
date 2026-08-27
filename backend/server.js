@@ -12,10 +12,23 @@ dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 5000;
-const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  process.env.FRONTEND_URL,
+  "http://localhost:5173"
+].filter(Boolean).map((origin) => origin.replace(/\/$/, ""));
 
 app.use(helmet());
-app.use(cors({ origin: clientUrl, credentials: true }));
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin.replace(/\/$/, ""))) {
+      callback(null, true);
+      return;
+    }
+    callback(new Error("Origin is not allowed by CORS"));
+  },
+  credentials: true
+}));
 app.use(express.json({ limit: "2mb" }));
 app.use(morgan("dev"));
 
@@ -32,13 +45,17 @@ app.use((err, _req, res, _next) => {
   res.status(status).json({ message: err.message || "Server error" });
 });
 
+export default app;
+
 connectDB()
   .then(() => {
-    app.listen(port, () => {
-      console.log(`LostLink API running on port ${port}`);
-    });
+    if (process.env.NODE_ENV !== "production") {
+      app.listen(port, () => {
+        console.log(`LostLink API running on port ${port}`);
+      });
+    }
   })
   .catch((error) => {
     console.error("Mongo connection failed:", error.message);
-    process.exit(1);
+    if (process.env.NODE_ENV !== "production") process.exit(1);
   });
