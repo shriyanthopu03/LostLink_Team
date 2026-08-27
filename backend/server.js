@@ -32,6 +32,16 @@ app.get("/api/health", (_req, res) => {
   res.json({ ok: true, service: "lostlink-backend" });
 });
 
+app.use(async (_req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    console.error("Mongo connection failed:", error.message);
+    res.status(503).json({ message: "Database unavailable" });
+  }
+});
+
 app.use("/api/auth", authRoutes);
 app.use("/api/items", itemRoutes);
 app.use("/api/claims", claimRoutes);
