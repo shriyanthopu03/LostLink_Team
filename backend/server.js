@@ -15,6 +15,7 @@ const port = process.env.PORT || 5000;
 const allowedOrigins = [
   process.env.CLIENT_URL,
   process.env.FRONTEND_URL,
+  "https://lost-link-team-frontend.vercel.app",
   "http://localhost:5173"
 ].filter(Boolean).map((origin) => origin.replace(/\/$/, ""));
 
@@ -25,7 +26,7 @@ app.use(cors({
       callback(null, true);
       return;
     }
-    callback(new Error("Origin is not allowed by CORS"));
+    callback(null, false);
   },
   credentials: true
 }));
