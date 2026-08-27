@@ -12,17 +12,12 @@ dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 5000;
-const allowedOrigins = [
-  process.env.CLIENT_URL,
-  process.env.FRONTEND_URL,
-  "https://lost-link-team-frontend.vercel.app",
-  "http://localhost:5173"
-].filter(Boolean).map((origin) => origin.replace(/\/$/, ""));
+const clientUrl = process.env.CLIENT_URL?.replace(/\/$/, "");
 
 app.use(helmet());
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin.replace(/\/$/, ""))) {
+    if (!origin || origin.replace(/\/$/, "") === clientUrl) {
       callback(null, true);
       return;
     }
