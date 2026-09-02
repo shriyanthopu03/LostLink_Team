@@ -57,37 +57,7 @@ function App() {
   }, [user, search, filters]);
 
   useEffect(() => {
-    if (!user) {
-      setItems([]);
-      setSelectedItem(null);
-      setMatches([]);
-      return;
-    }
 
-    if (selectedItem) {
-      loadMatches(selectedItem.id);
-    } else {
-      setMatches([]);
-    }
-  }, [selectedItem, user]);
-
-  useEffect(() => {
-    return () => {
-      if (imagePreview) URL.revokeObjectURL(imagePreview);
-    };
-  }, [imagePreview]);
-
-  const headers = useMemo(() => ({
-    ...(token ? { Authorization: `Bearer ${token}` } : {})
-  }), [token]);
-
-  async function request(path, options = {}) {
-    const response = await fetch(`${API_URL}${path}`, {
-      ...options,
-      headers: { ...headers, ...(options.headers || {}) }
-    });
-
-    const text = await response.text();
     const data = text ? JSON.parse(text) : {};
 
     if (!response.ok) {
@@ -98,187 +68,187 @@ function App() {
   }
 
   async function loadItems() {
-    if (!user) return;
+      if (!user) return;
 
-    setIsLoadingItems(true);
-    try {
-      const params = new URLSearchParams();
-      if (search) params.set("search", search);
-      if (filters.type) params.set("type", filters.type);
-      if (filters.category) params.set("category", filters.category);
-      if (filters.status) params.set("status", filters.status);
+      setIsLoadingItems(true);
+      try {
+        const params = new URLSearchParams();
+        if (search) params.set("search", search);
+        if (filters.type) params.set("type", filters.type);
+        if (filters.category) params.set("category", filters.category);
+        if (filters.status) params.set("status", filters.status);
 
-      const data = await request(`/items?${params.toString()}`, { method: "GET" });
-      setItems(data);
+        const data = await request(`/items?${params.toString()}`, { method: "GET" });
+        setItems(data);
 
-      if (data.length && (!selectedItem || !data.some((item) => item.id === selectedItem.id))) {
-        setSelectedItem(data[0]);
+        if (data.length && (!selectedItem || !data.some((item) => item.id === selectedItem.id))) {
+          setSelectedItem(data[0]);
+        }
+
+        if (!data.length) {
+          setSelectedItem(null);
+        }
+      } catch (error) {
+        setMessage(error.message || "Unable to load recent posts.");
+      } finally {
+        setIsLoadingItems(false);
       }
-
-      if (!data.length) {
-        setSelectedItem(null);
-      }
-    } catch (error) {
-      setMessage(error.message || "Unable to load recent posts.");
-    } finally {
-      setIsLoadingItems(false);
     }
-  }
 
   async function loadMatches(itemId) {
-    if (!itemId) return;
+      if (!itemId) return;
 
-    setIsLoadingMatches(true);
-    try {
-      const data = await request(`/items/${itemId}/matches`, { method: "GET" });
-      setMatches(data);
-    } catch (error) {
-      setMessage(error.message || "Unable to load matches.");
-    } finally {
-      setIsLoadingMatches(false);
+      setIsLoadingMatches(true);
+      try {
+        const data = await request(`/items/${itemId}/matches`, { method: "GET" });
+        setMatches(data);
+      } catch (error) {
+        setMessage(error.message || "Unable to load matches.");
+      } finally {
+        setIsLoadingMatches(false);
+      }
     }
-  }
 
   async function handleAuthSubmit(event) {
-    event.preventDefault();
-    setIsAuthenticating(true);
-    try {
-      const path = authMode === "register" ? "/auth/register" : "/auth/login";
-      const payload = authMode === "register"
-        ? authForm
-        : { email: authForm.email, password: authForm.password };
+      event.preventDefault();
+      setIsAuthenticating(true);
+      try {
+        const path = authMode === "register" ? "/auth/register" : "/auth/login";
+        const payload = authMode === "register"
+          ? authForm
+          : { email: authForm.email, password: authForm.password };
 
-      const data = await request(path, {
-        method: "POST",
-        body: JSON.stringify(payload),
-        headers: { "Content-Type": "application/json" }
-      });
+        const data = await request(path, {
+          method: "POST",
+          body: JSON.stringify(payload),
+          headers: { "Content-Type": "application/json" }
+        });
 
-      setToken(data.token);
-      localStorage.setItem("lostlink-token", data.token);
-      localStorage.setItem("lostlink-user", JSON.stringify(data.user));
-      setUser(data.user);
-      setToken(data.token);
-      setAuthForm({ name: "", email: "", password: "" });
-      setAuthMode("login");
-      setMessage(`Welcome, ${data.user.name}`);
-    } catch (error) {
-      setMessage(error.message || "Authentication failed");
-    } finally {
-      setIsAuthenticating(false);
+        setToken(data.token);
+        localStorage.setItem("lostlink-token", data.token);
+        localStorage.setItem("lostlink-user", JSON.stringify(data.user));
+        setUser(data.user);
+        setToken(data.token);
+        setAuthForm({ name: "", email: "", password: "" });
+        setAuthMode("login");
+        setMessage(`Welcome, ${data.user.name}`);
+      } catch (error) {
+        setMessage(error.message || "Authentication failed");
+      } finally {
+        setIsAuthenticating(false);
+      }
     }
-  }
 
   async function handleItemSubmit(event) {
-    event.preventDefault();
-    if (!token) {
-      setMessage("Please log in before posting an item.");
-      return;
-    }
-
-    setIsSubmittingItem(true);
-    try {
-      const formData = new FormData();
-      Object.entries(itemForm).forEach(([key, value]) => {
-        if (value) formData.append(key, value);
-      });
-
-      if (selectedImage) {
-        formData.append("image", selectedImage);
+      event.preventDefault();
+      if (!token) {
+        setMessage("Please log in before posting an item.");
+        return;
       }
 
-      await fetch(`${API_URL}/items`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData
-      }).then(async (response) => {
-        const result = await response.json().catch(() => ({}));
-        if (!response.ok) {
-          throw new Error(result.message || "Unable to submit item");
-        }
-        return result;
-      });
+      setIsSubmittingItem(true);
+      try {
+        const formData = new FormData();
+        Object.entries(itemForm).forEach(([key, value]) => {
+          if (value) formData.append(key, value);
+        });
 
-      setItemForm(defaultForm);
-      setSelectedImage(null);
-      setImagePreview("");
-      setMessage("Report submitted successfully.");
-      await loadItems();
-    } catch (error) {
-      setMessage(error.message || "Unable to submit item");
-    } finally {
-      setIsSubmittingItem(false);
+        if (selectedImage) {
+          formData.append("image", selectedImage);
+        }
+
+        await fetch(`${API_URL}/items`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData
+        }).then(async (response) => {
+          const result = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            throw new Error(result.message || "Unable to submit item");
+          }
+          return result;
+        });
+
+        setItemForm(defaultForm);
+        setSelectedImage(null);
+        setImagePreview("");
+        setMessage("Report submitted successfully.");
+        await loadItems();
+      } catch (error) {
+        setMessage(error.message || "Unable to submit item");
+      } finally {
+        setIsSubmittingItem(false);
+      }
     }
-  }
 
   async function handleClaimSubmit(event) {
-    event.preventDefault();
-    if (!selectedItem) return;
-    if (!token) {
-      setMessage("Please log in before claiming an item.");
-      return;
-    }
+      event.preventDefault();
+      if (!selectedItem) return;
+      if (!token) {
+        setMessage("Please log in before claiming an item.");
+        return;
+      }
 
-    setIsClaiming(true);
-    try {
-      const data = await request(`/claims/${selectedItem.id}`, {
-        method: "POST",
-        body: JSON.stringify({ answer: claimAnswer }),
-        headers: { "Content-Type": "application/json" }
-      });
+      setIsClaiming(true);
+      try {
+        const data = await request(`/claims/${selectedItem.id}`, {
+          method: "POST",
+          body: JSON.stringify({ answer: claimAnswer }),
+          headers: { "Content-Type": "application/json" }
+        });
 
-      setMessage(data.verified ? "Claim verified. Item can be returned." : "Claim failed verification.");
-      setClaimAnswer("");
-      await loadItems();
-      await loadMatches(selectedItem.id);
-    } catch (error) {
-      setMessage(error.message || "Unable to submit claim");
-    } finally {
-      setIsClaiming(false);
+        setMessage(data.verified ? "Claim verified. Item can be returned." : "Claim failed verification.");
+        setClaimAnswer("");
+        await loadItems();
+        await loadMatches(selectedItem.id);
+      } catch (error) {
+        setMessage(error.message || "Unable to submit claim");
+      } finally {
+        setIsClaiming(false);
+      }
     }
-  }
 
   function handleImageChange(event) {
-    const file = event.target.files?.[0];
-    if (!file) {
-      setSelectedImage(null);
-      setImagePreview("");
-      return;
-    }
+      const file = event.target.files?.[0];
+      if (!file) {
+        setSelectedImage(null);
+        setImagePreview("");
+        return;
+      }
 
-    if (!file.type.startsWith("image/")) {
-      setMessage("Please choose a valid image file.");
-      return;
-    }
+      if (!file.type.startsWith("image/")) {
+        setMessage("Please choose a valid image file.");
+        return;
+      }
 
-    if (file.size > 5 * 1024 * 1024) {
-      setMessage("Image size must be 5MB or less.");
-      return;
-    }
+      if (file.size > 5 * 1024 * 1024) {
+        setMessage("Image size must be 5MB or less.");
+        return;
+      }
 
-    const nextPreview = URL.createObjectURL(file);
-    if (imagePreview) URL.revokeObjectURL(imagePreview);
-    setSelectedImage(file);
-    setImagePreview(nextPreview);
-    setMessage("Image attached and ready to upload.");
-  }
+      const nextPreview = URL.createObjectURL(file);
+      if (imagePreview) URL.revokeObjectURL(imagePreview);
+      setSelectedImage(file);
+      setImagePreview(nextPreview);
+      setMessage("Image attached and ready to upload.");
+    }
 
   function logout() {
-    localStorage.removeItem("lostlink-token");
-    localStorage.removeItem("lostlink-user");
-    setToken("");
-    setUser(null);
-    setAuthForm({ name: "", email: "", password: "" });
-    setAuthMode("login");
-    setSelectedItem(null);
-    setMatches([]);
-    setMessage("Logged out successfully. Please sign in again.");
-  }
+      localStorage.removeItem("lostlink-token");
+      localStorage.removeItem("lostlink-user");
+      setToken("");
+      setUser(null);
+      setAuthForm({ name: "", email: "", password: "" });
+      setAuthMode("login");
+      setSelectedItem(null);
+      setMatches([]);
+      setMessage("Logged out successfully. Please sign in again.");
+    }
 
   function formatDate(value) {
-    if (!value) return "Unknown date";
-    return new Date(value).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
-  }
+      if (!value) return "Unknown date";
+      return new Date(value).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+    }
 
   if (!isAuthenticated) {
     return (
