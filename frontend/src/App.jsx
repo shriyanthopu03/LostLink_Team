@@ -305,7 +305,7 @@ function App() {
               <button
                 type="submit"
                 disabled={isAuthenticating}
-                className="w-full rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-amber-200 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
+                className="w-full btn-primary"
               >
                 {isAuthenticating ? "Please wait..." : authMode === "register" ? "Create account" : "Login"}
               </button>
@@ -332,13 +332,7 @@ function App() {
               <div className="rounded-2xl bg-slate-900 px-4 py-2.5 text-sm text-white shadow-sm">
                 Signed in as <span className="font-semibold">{user.name}</span>
               </div>
-              <button
-                type="button"
-                onClick={logout}
-                className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-100"
-              >
-                Logout
-              </button>
+              <button type="button" onClick={logout} className="btn-outline">Logout</button>
             </div>
           </div>
 
@@ -353,7 +347,7 @@ function App() {
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-amber-500"
+                className="search-input"
                 placeholder="Search by title, description, location, item..."
               />
               <select
@@ -450,12 +444,7 @@ function App() {
 
                       <div className="mt-4 flex items-center justify-between gap-3 border-t border-slate-200 pt-3">
                         <span className="text-xs text-slate-500">Posted by {item.owner?.name || "Unknown"}</span>
-                        <button
-                          type="button"
-                          className="rounded-xl bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-700"
-                        >
-                          View details
-                        </button>
+                        <button type="button" className="rounded-xl bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-700">View details</button>
                       </div>
                     </div>
                   ))}
@@ -517,13 +506,7 @@ function App() {
                         className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-amber-500"
                         placeholder="Answer the verification question"
                       />
-                      <button
-                        type="submit"
-                        disabled={isClaiming}
-                        className="w-full rounded-2xl bg-gradient-to-r from-orange-500 to-red-500 px-4 py-3 text-sm font-semibold text-white shadow-md transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
-                      >
-                        {isClaiming ? "Checking claim..." : "Submit claim"}
-                      </button>
+                      <button type="submit" disabled={isClaiming} className="w-full btn-accent">{isClaiming ? "Checking claim..." : "Submit claim"}</button>
                     </form>
                   </div>
                 ) : (
@@ -671,13 +654,7 @@ function App() {
                 ) : null}
               </div>
 
-              <button
-                type="submit"
-                disabled={isSubmittingItem}
-                className="w-full rounded-2xl bg-gradient-to-r from-slate-900 to-slate-700 px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                {isSubmittingItem ? "Uploading report..." : "Submit report"}
-              </button>
+              <button type="submit" disabled={isSubmittingItem} className="w-full btn-dark">{isSubmittingItem ? "Uploading report..." : "Submit report"}</button>
             </form>
           </section>
         </main>
