@@ -66,6 +66,14 @@ connectDB()
     }
   })
   .catch((error) => {
-    console.error("Mongo connection failed:", error.message);
-    if (process.env.NODE_ENV !== "production") process.exit(1);
+    console.error("Mongo connection failed:", error?.message || error);
+    console.error(error?.stack || "no stack");
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("Starting server without DB connection (development mode)");
+      app.listen(port, () => {
+        console.log(`LostLink API running on port ${port} (no DB)`);
+      });
+    } else {
+      process.exit(1);
+    }
   });
