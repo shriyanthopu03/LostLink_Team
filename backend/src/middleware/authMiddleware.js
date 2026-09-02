@@ -19,6 +19,17 @@ const authMiddleware = async (req, res, next) => {
       return res.status(401).json({ message: "Token invalid" });
     }
 
+    if (payload.role === "admin" || userId === "admin-fixed-id") {
+      req.user = {
+        _id: "admin-fixed-id",
+        id: "admin-fixed-id",
+        name: process.env.ADMIN_NAME || "System Administrator",
+        email: (process.env.ADMIN_EMAIL || "admin@lostlink.com").toLowerCase(),
+        role: "admin"
+      };
+      return next();
+    }
+
     const user = await User.findById(userId).select("-passwordHash");
 
     if (!user) {

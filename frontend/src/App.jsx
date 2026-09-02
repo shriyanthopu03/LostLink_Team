@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from "react";
 
-const API_URL = import.meta.env.VITE_API_URL || "https://lost-link-team-backend.vercel.app/api";
+const API_URL =
+  typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
+    ? "http://localhost:5000/api"
+    : import.meta.env.VITE_API_URL || "https://lost-link-team-backend.vercel.app/api";
 const fallbackImage = "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1200&q=80";
 
 const defaultForm = {
@@ -52,6 +55,12 @@ function App() {
   const [isDraggingImage, setIsDraggingImage] = useState(false);
   const [reportInterface, setReportInterface] = useState("classic");
   const [currentPage, setCurrentPage] = useState("dashboard");
+  const [authRole, setAuthRole] = useState("user");
+  const [adminStats, setAdminStats] = useState(null);
+  const [adminUsers, setAdminUsers] = useState([]);
+  const [adminItems, setAdminItems] = useState([]);
+  const [isLoadingAdminData, setIsLoadingAdminData] = useState(false);
+  const [adminTab, setAdminTab] = useState("items");
 
   const isAuthenticated = Boolean(user && token);
 
@@ -208,12 +217,67 @@ function App() {
     ];
   })();
 
+  useEffect(() => {
+    if (isAuthenticated && user?.role === "admin" && currentPage === "admin-dashboard") {
+      loadAdminData();
+    }
+  }, [isAuthenticated, user, currentPage, token]);
+
+  async function loadAdminData() {
+    if (!token || user?.role !== "admin") return;
+    setIsLoadingAdminData(true);
+    try {
+      const [stats, usersList, itemsList] = await Promise.all([
+        request("/admin/stats", { method: "GET" }).catch(() => null),
+        request("/admin/users", { method: "GET" }).catch(() => []),
+        request("/admin/items", { method: "GET" }).catch(() => [])
+      ]);
+      setAdminStats(stats);
+      setAdminUsers(usersList || []);
+      setAdminItems(itemsList || []);
+    } catch (error) {
+      setMessage(error.message || "Failed to load admin control panel data.");
+    } finally {
+      setIsLoadingAdminData(false);
+    }
+  }
+
+  async function handleAdminDeleteItem(itemId) {
+    if (!window.confirm("Are you sure you want to delete this item as Administrator?")) return;
+    try {
+      await request(`/admin/items/${itemId}`, { method: "DELETE" });
+      setMessage("Item deleted by Administrator.");
+      await loadAdminData();
+      await loadItems();
+    } catch (error) {
+      setMessage(error.message || "Failed to delete item.");
+    }
+  }
+
+  async function handleAdminUpdateStatus(itemId, newStatus) {
+    try {
+      await request(`/admin/items/${itemId}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: newStatus }),
+        headers: { "Content-Type": "application/json" }
+      });
+      setMessage(`Item status updated to ${newStatus}.`);
+      await loadAdminData();
+      await loadItems();
+    } catch (error) {
+      setMessage(error.message || "Failed to update item status.");
+    }
+  }
+
   async function handleAuthSubmit(event) {
     event.preventDefault();
     setIsAuthenticating(true);
     try {
-      const path = authMode === "register" ? "/auth/register" : "/auth/login";
-      const payload = authMode === "register" ? authForm : { email: authForm.email, password: authForm.password };
+      const activeMode = authRole === "admin" ? "login" : authMode;
+      const path = activeMode === "register" ? "/auth/register" : "/auth/login";
+      const payload = activeMode === "register"
+        ? { ...authForm, role: authRole }
+        : { email: authForm.email, password: authForm.password, role: authRole };
 
       const data = await request(path, {
         method: "POST",
@@ -227,7 +291,14 @@ function App() {
       setUser(data.user);
       setAuthForm({ name: "", email: "", password: "" });
       setAuthMode("login");
-      setMessage(`Welcome, ${data.user.name}`);
+
+      if (data.user?.role === "admin") {
+        setCurrentPage("admin-dashboard");
+        setMessage(`Logged in as Administrator (${data.user.email})`);
+      } else {
+        setCurrentPage("dashboard");
+        setMessage(`Welcome back, ${data.user.name}`);
+      }
     } catch (error) {
       setMessage(error.message || "Authentication failed");
     } finally {
@@ -362,31 +433,85 @@ function App() {
           </header>
 
           <section className="glass-panel mt-6 rounded-[28px] border border-white/10 p-5">
-            <div className="mb-5 flex rounded-2xl border border-white/10 bg-slate-950/60 p-1">
+            {/* User vs Admin Role Selector */}
+            <div className="mb-4 flex rounded-2xl border border-white/10 bg-slate-950/80 p-1">
               <button
                 type="button"
-                onClick={() => setAuthMode("login")}
-                className={`flex-1 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${authMode === "login" ? "bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-400 text-white shadow-[0_0_20px_rgba(99,102,241,0.28)]" : "text-slate-300 hover:text-white"}`}
+                onClick={() => {
+                  setAuthRole("user");
+                  setMessage("Sign in or create a standard user account.");
+                }}
+                className={`flex-1 rounded-xl px-3 py-2 text-xs font-bold uppercase tracking-wider transition ${
+                  authRole === "user"
+                    ? "bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-400 text-white shadow-[0_0_20px_rgba(99,102,241,0.3)]"
+                    : "text-slate-400 hover:text-white"
+                }`}
               >
-                Login
+                👤 User Login
               </button>
               <button
                 type="button"
-                onClick={() => setAuthMode("register")}
-                className={`flex-1 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${authMode === "register" ? "bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-400 text-white shadow-[0_0_20px_rgba(99,102,241,0.28)]" : "text-slate-300 hover:text-white"}`}
+                onClick={() => {
+                  setAuthRole("admin");
+                  setAuthMode("login");
+                  setMessage("Restricted access: Admin credentials required.");
+                }}
+                className={`flex-1 rounded-xl px-3 py-2 text-xs font-bold uppercase tracking-wider transition ${
+                  authRole === "admin"
+                    ? "bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 text-white shadow-[0_0_20px_rgba(168,85,247,0.3)]"
+                    : "text-slate-400 hover:text-white"
+                }`}
               >
-                Register
+                🛡️ Admin Login
               </button>
             </div>
 
+            {/* Mode Switcher: Login vs Register (Disabled for Admin) */}
+            {authRole === "user" ? (
+              <div className="mb-5 flex rounded-2xl border border-white/10 bg-slate-950/60 p-1">
+                <button
+                  type="button"
+                  onClick={() => setAuthMode("login")}
+                  className={`flex-1 rounded-xl px-3 py-2 text-xs font-semibold transition ${
+                    authMode === "login"
+                      ? "bg-white/10 text-white shadow"
+                      : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  Login
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAuthMode("register")}
+                  className={`flex-1 rounded-xl px-3 py-2 text-xs font-semibold transition ${
+                    authMode === "register"
+                      ? "bg-white/10 text-white shadow"
+                      : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  Register
+                </button>
+              </div>
+            ) : (
+              <div className="mb-5 rounded-2xl border border-purple-500/30 bg-purple-500/10 p-3 text-center">
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-purple-200">
+                  🛡️ Restricted Admin Access
+                </span>
+                <p className="mt-1 text-[11px] text-slate-400">
+                  Admin registration is disabled. System authentication requires environment credentials.
+                </p>
+              </div>
+            )}
+
             <form className="space-y-3" onSubmit={handleAuthSubmit}>
-              {authMode === "register" && (
+              {authRole === "user" && authMode === "register" && (
                 <input
                   type="text"
                   value={authForm.name}
                   onChange={(event) => setAuthForm((current) => ({ ...current, name: event.target.value }))}
                   className="futuristic-input"
                   placeholder="Full name"
+                  required
                 />
               )}
               <input
@@ -394,17 +519,25 @@ function App() {
                 value={authForm.email}
                 onChange={(event) => setAuthForm((current) => ({ ...current, email: event.target.value }))}
                 className="futuristic-input"
-                placeholder="Email"
+                placeholder={authRole === "admin" ? "Admin Email (e.g. admin@lostlink.com)" : "Email address"}
+                required
               />
               <input
                 type="password"
                 value={authForm.password}
                 onChange={(event) => setAuthForm((current) => ({ ...current, password: event.target.value }))}
                 className="futuristic-input"
-                placeholder="Password"
+                placeholder={authRole === "admin" ? "Admin Password" : "Password"}
+                required
               />
               <button type="submit" disabled={isAuthenticating} className="primary-button w-full justify-center">
-                {isAuthenticating ? "Please wait..." : authMode === "register" ? "Create account" : "Login"}
+                {isAuthenticating
+                  ? "Authenticating..."
+                  : authRole === "admin"
+                  ? "Login as Administrator"
+                  : authMode === "register"
+                  ? "Create Account"
+                  : "Login"}
               </button>
             </form>
           </section>
@@ -467,10 +600,32 @@ function App() {
                 >
                   Report an Item
                 </button>
+                {user?.role === "admin" && (
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage("admin-dashboard")}
+                    className={`rounded-xl px-4 py-2 text-xs font-bold uppercase tracking-wider transition flex items-center gap-1.5 ${
+                      currentPage === "admin-dashboard"
+                        ? "bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 text-white shadow-[0_0_20px_rgba(168,85,247,0.4)]"
+                        : "text-purple-300 hover:text-white border border-purple-400/40 bg-purple-500/15"
+                    }`}
+                  >
+                    🛡️ Admin Panel
+                  </button>
+                )}
               </nav>
 
-              <div className="rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-slate-200">
-                Signed in as <span className="font-semibold text-white">{user.name}</span>
+              <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-slate-200">
+                <span>Signed in as <span className="font-semibold text-white">{user.name}</span></span>
+                {user?.role === "admin" ? (
+                  <span className="rounded-full bg-purple-500/20 border border-purple-400/40 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-widest text-purple-300">
+                    ADMIN
+                  </span>
+                ) : (
+                  <span className="rounded-full bg-cyan-500/20 border border-cyan-400/40 px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-cyan-300">
+                    USER
+                  </span>
+                )}
               </div>
               <button type="button" onClick={logout} className="nav-button">Logout</button>
             </div>
@@ -1096,6 +1251,217 @@ function App() {
               </div>
             )}
           </section>
+        </div>
+      ) : currentPage === "admin-dashboard" ? (
+        <div className="space-y-6">
+          {user?.role !== "admin" ? (
+            <div className="empty-panel border-red-500/40 bg-red-500/5 py-12">
+              <div className="empty-mark border-red-500/40 text-red-400">🚫</div>
+              <h3 className="text-red-200 text-xl font-bold">Access Denied - Admin Privileges Required</h3>
+              <p className="mt-2 text-sm text-slate-400 max-w-md mx-auto">
+                Your account does not have administrator privileges to view this management panel.
+              </p>
+              <button
+                type="button"
+                onClick={() => setCurrentPage("dashboard")}
+                className="primary-button mt-5"
+              >
+                Return to Dashboard
+              </button>
+            </div>
+          ) : (
+            <>
+              <section className="glass-panel relative overflow-hidden rounded-[28px] border border-purple-500/30 p-5 sm:p-6 shadow-[0_0_40px_rgba(168,85,247,0.15)]">
+                <div className="absolute -top-16 right-10 h-40 w-40 rounded-full bg-purple-500/20 blur-3xl" />
+                <div className="absolute bottom-0 left-10 h-28 w-28 rounded-full bg-cyan-500/20 blur-3xl" />
+
+                <div className="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <div className="mb-2 flex flex-wrap items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setCurrentPage("dashboard")}
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-cyan-300 hover:underline"
+                      >
+                        ← Back to User Dashboard
+                      </button>
+                      <span className="rounded-full border border-purple-400/40 bg-purple-500/20 px-3 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.28em] text-purple-200 shadow-[0_0_15px_rgba(168,85,247,0.3)]">
+                        🛡️ ADMIN CONTROL PANEL
+                      </span>
+                    </div>
+                    <h1 className="text-3xl font-black tracking-tight text-white sm:text-4xl">
+                      Platform Management & Moderation
+                    </h1>
+                    <p className="mt-1 text-sm text-slate-300">
+                      Authenticated System Administrator Controls: oversight, user directory, and item moderation.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={loadAdminData}
+                    className="secondary-button text-xs py-2 text-cyan-300 border-cyan-400/40"
+                  >
+                    🔄 Refresh Control Panel
+                  </button>
+                </div>
+              </section>
+
+              {/* Admin Overview Metrics Grid */}
+              <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="glass-panel rounded-2xl border border-white/10 bg-slate-950/40 p-4">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-slate-400">Total Registered Users</p>
+                  <p className="mt-2 text-3xl font-black text-white">{adminStats?.usersCount ?? adminUsers.length}</p>
+                  <p className="mt-1 text-xs text-slate-400">Active accounts in DB</p>
+                </div>
+
+                <div className="glass-panel rounded-2xl border border-white/10 bg-slate-950/40 p-4">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-slate-400">Total Items Reported</p>
+                  <p className="mt-2 text-3xl font-black text-cyan-300">{adminStats?.itemsCount ?? items.length}</p>
+                  <p className="mt-1 text-xs text-slate-400">
+                    {adminStats?.lostItemsCount ?? 0} Lost · {adminStats?.foundItemsCount ?? 0} Found
+                  </p>
+                </div>
+
+                <div className="glass-panel rounded-2xl border border-white/10 bg-slate-950/40 p-4">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-slate-400">Pending Claims</p>
+                  <p className="mt-2 text-3xl font-black text-purple-300">{adminStats?.pendingClaimsCount ?? 0}</p>
+                  <p className="mt-1 text-xs text-slate-400">Claims awaiting verification</p>
+                </div>
+
+                <div className="glass-panel rounded-2xl border border-white/10 bg-slate-950/40 p-4">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-slate-400">System Admin Auth</p>
+                  <p className="mt-2 text-xl font-bold text-emerald-400">● Env Credentials Active</p>
+                  <p className="mt-1 text-xs text-slate-400">{user.email}</p>
+                </div>
+              </section>
+
+              {/* Admin Tab Switcher */}
+              <section className="glass-panel rounded-[28px] border border-white/10 p-5 space-y-5">
+                <div className="flex items-center justify-between border-b border-white/10 pb-4">
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setAdminTab("items")}
+                      className={`rounded-xl px-4 py-2 text-xs font-extrabold uppercase tracking-wider transition ${
+                        adminTab === "items"
+                          ? "bg-purple-500/20 text-purple-200 border border-purple-400/40"
+                          : "text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      📦 Item Moderation ({adminItems.length || items.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAdminTab("users")}
+                      className={`rounded-xl px-4 py-2 text-xs font-extrabold uppercase tracking-wider transition ${
+                        adminTab === "users"
+                          ? "bg-purple-500/20 text-purple-200 border border-purple-400/40"
+                          : "text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      👥 User Directory ({adminUsers.length})
+                    </button>
+                  </div>
+                </div>
+
+                {isLoadingAdminData ? (
+                  <div className="py-8 text-center text-sm text-slate-400 animate-pulse">
+                    Loading administrative controls...
+                  </div>
+                ) : adminTab === "items" ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead>
+                        <tr className="border-b border-white/10 text-slate-400 uppercase tracking-widest text-[10px]">
+                          <th className="py-3 px-3">Item Details</th>
+                          <th className="py-3 px-3">Type</th>
+                          <th className="py-3 px-3">Category</th>
+                          <th className="py-3 px-3">Location</th>
+                          <th className="py-3 px-3">Owner</th>
+                          <th className="py-3 px-3">Status</th>
+                          <th className="py-3 px-3 text-right">Admin Control</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {(adminItems.length > 0 ? adminItems : items).map((item) => (
+                          <tr key={item.id || item._id} className="hover:bg-white/[0.02]">
+                            <td className="py-3 px-3 font-bold text-white flex items-center gap-2">
+                              <img
+                                src={item.imageUrl || fallbackImage}
+                                alt=""
+                                className="h-9 w-9 rounded-lg object-cover"
+                                onError={(e) => { e.currentTarget.src = fallbackImage; }}
+                              />
+                              <span className="truncate max-w-[160px]">{item.title}</span>
+                            </td>
+                            <td className="py-3 px-3">
+                              <span className="uppercase text-[10px] font-bold text-cyan-300">{item.type}</span>
+                            </td>
+                            <td className="py-3 px-3 text-slate-300">{item.category}</td>
+                            <td className="py-3 px-3 text-slate-300">{item.location}</td>
+                            <td className="py-3 px-3 text-slate-300">{item.owner?.name || "Unknown"}</td>
+                            <td className="py-3 px-3">
+                              <select
+                                value={item.status}
+                                onChange={(e) => handleAdminUpdateStatus(item.id || item._id, e.target.value)}
+                                className="bg-slate-900 border border-white/10 rounded-lg text-[11px] px-2 py-1 text-slate-200"
+                              >
+                                <option value="open">open</option>
+                                <option value="match_suggested">match_suggested</option>
+                                <option value="claim_pending">claim_pending</option>
+                                <option value="verified">verified</option>
+                                <option value="returned">returned</option>
+                                <option value="closed">closed</option>
+                              </select>
+                            </td>
+                            <td className="py-3 px-3 text-right">
+                              <button
+                                type="button"
+                                onClick={() => handleAdminDeleteItem(item.id || item._id)}
+                                className="rounded-lg border border-red-500/40 bg-red-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-red-300 hover:bg-red-500/20 transition"
+                              >
+                                Delete
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead>
+                        <tr className="border-b border-white/10 text-slate-400 uppercase tracking-widest text-[10px]">
+                          <th className="py-3 px-3">User Name</th>
+                          <th className="py-3 px-3">Email Address</th>
+                          <th className="py-3 px-3">Account Role</th>
+                          <th className="py-3 px-3">Joined Date</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {adminUsers.map((u) => (
+                          <tr key={u._id || u.id} className="hover:bg-white/[0.02]">
+                            <td className="py-3 px-3 font-bold text-white">{u.name}</td>
+                            <td className="py-3 px-3 text-cyan-300">{u.email}</td>
+                            <td className="py-3 px-3">
+                              <span className={`px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase ${u.role === "admin" ? "bg-purple-500/20 text-purple-300 border border-purple-400/30" : "bg-cyan-500/10 text-cyan-300 border border-cyan-400/20"}`}>
+                                {u.role || "user"}
+                              </span>
+                            </td>
+                            <td className="py-3 px-3 text-slate-400">
+                              {formatDate(u.createdAt)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
+            </>
+          )}
         </div>
       ) : (
             <div className="space-y-6">

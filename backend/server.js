@@ -7,6 +7,7 @@ import connectDB from "./src/config/db.js";
 import authRoutes from "./src/routes/authRoutes.js";
 import itemRoutes from "./src/routes/itemRoutes.js";
 import claimRoutes from "./src/routes/claimRoutes.js";
+import adminRoutes from "./src/routes/adminRoutes.js";
 
 dotenv.config();
 
@@ -58,6 +59,7 @@ app.use(async (_req, res, next) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/items", itemRoutes);
 app.use("/api/claims", claimRoutes);
+app.use("/api/admin", adminRoutes);
 
 app.use((err, _req, res, _next) => {
   const status = err.status || 500;
