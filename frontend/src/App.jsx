@@ -17,12 +17,12 @@ const defaultForm = {
 const categories = ["Documents", "Wallet", "Keys", "Electronics", "Bags", "Clothing", "Accessories", "Books", "ID Card", "Other"];
 
 const statusBadge = {
-  open: "bg-emerald-100 text-emerald-700",
-  match_suggested: "bg-amber-100 text-amber-700",
-  claim_pending: "bg-blue-100 text-blue-700",
-  verified: "bg-violet-100 text-violet-700",
-  returned: "bg-slate-200 text-slate-700",
-  closed: "bg-slate-200 text-slate-700"
+  open: "border-emerald-400/40 bg-emerald-500/10 text-emerald-200",
+  match_suggested: "border-amber-400/40 bg-amber-500/10 text-amber-200",
+  claim_pending: "border-cyan-400/40 bg-cyan-500/10 text-cyan-200",
+  verified: "border-violet-400/40 bg-violet-500/10 text-violet-200",
+  returned: "border-slate-400/40 bg-slate-500/10 text-slate-200",
+  closed: "border-slate-400/40 bg-slate-500/10 text-slate-200"
 };
 
 function App() {
@@ -40,6 +40,7 @@ function App() {
   const [filters, setFilters] = useState({ type: "", category: "", status: "" });
   const [selectedItem, setSelectedItem] = useState(null);
   const [claimAnswer, setClaimAnswer] = useState("");
+  const [showClaimModal, setShowClaimModal] = useState(false);
   const [message, setMessage] = useState("Sign in or create an account to start reporting items.");
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [isSubmittingItem, setIsSubmittingItem] = useState(false);
@@ -48,6 +49,7 @@ function App() {
   const [isLoadingMatches, setIsLoadingMatches] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [imagePreview, setImagePreview] = useState("");
+  const [isDraggingImage, setIsDraggingImage] = useState(false);
 
   const isAuthenticated = Boolean(user && token);
 
@@ -227,6 +229,7 @@ function App() {
 
       setMessage(data.verified ? "Claim verified. Item can be returned." : "Claim failed verification.");
       setClaimAnswer("");
+      setShowClaimModal(false);
       await loadItems();
       await loadMatches(selectedItem.id);
     } catch (error) {
@@ -283,27 +286,28 @@ function App() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-slate-100 px-4 py-8">
-        <div className="mx-auto max-w-md">
-          <header className="rounded-3xl border border-white/80 bg-white/90 p-6 shadow-glow backdrop-blur-sm">
-            <p className="text-xs font-bold uppercase tracking-[0.35em] text-amber-600">LostLink</p>
-            <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">Secure digital lost & found</h1>
-            <p className="mt-2 text-sm text-slate-600">Sign in to view reports, match items, and post updates.</p>
+      <div className="dashboard-shell min-h-screen px-4 py-8 text-slate-100">
+        <div className="grid-pattern" />
+        <div className="relative mx-auto max-w-md pt-10">
+          <header className="glass-panel rounded-[28px] border border-white/10 p-6 shadow-[0_0_40px_rgba(99,102,241,0.18)]">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.42em] text-cyan-300">LostLink</p>
+            <h1 className="mt-4 text-4xl font-black tracking-tight text-white">Secure digital lost & found</h1>
+            <p className="mt-3 text-sm text-slate-300">Access the live recovery network, verify claims, and report newly found items.</p>
           </header>
 
-          <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-soft">
-            <div className="mb-5 flex gap-2 rounded-2xl bg-slate-100 p-1">
+          <section className="glass-panel mt-6 rounded-[28px] border border-white/10 p-5">
+            <div className="mb-5 flex rounded-2xl border border-white/10 bg-slate-950/60 p-1">
               <button
                 type="button"
                 onClick={() => setAuthMode("login")}
-                className={`flex-1 rounded-xl px-3 py-2 text-sm font-semibold transition ${authMode === "login" ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
+                className={`flex-1 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${authMode === "login" ? "bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-400 text-white shadow-[0_0_20px_rgba(99,102,241,0.28)]" : "text-slate-300 hover:text-white"}`}
               >
                 Login
               </button>
               <button
                 type="button"
                 onClick={() => setAuthMode("register")}
-                className={`flex-1 rounded-xl px-3 py-2 text-sm font-semibold transition ${authMode === "register" ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
+                className={`flex-1 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${authMode === "register" ? "bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-400 text-white shadow-[0_0_20px_rgba(99,102,241,0.28)]" : "text-slate-300 hover:text-white"}`}
               >
                 Register
               </button>
@@ -315,7 +319,7 @@ function App() {
                   type="text"
                   value={authForm.name}
                   onChange={(event) => setAuthForm((current) => ({ ...current, name: event.target.value }))}
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-amber-500"
+                  className="futuristic-input"
                   placeholder="Full name"
                 />
               )}
@@ -323,100 +327,175 @@ function App() {
                 type="email"
                 value={authForm.email}
                 onChange={(event) => setAuthForm((current) => ({ ...current, email: event.target.value }))}
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-amber-500"
+                className="futuristic-input"
                 placeholder="Email"
               />
               <input
                 type="password"
                 value={authForm.password}
                 onChange={(event) => setAuthForm((current) => ({ ...current, password: event.target.value }))}
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-amber-500"
+                className="futuristic-input"
                 placeholder="Password"
               />
-              <button type="submit" disabled={isAuthenticating} className="w-full btn-primary">
+              <button type="submit" disabled={isAuthenticating} className="primary-button w-full justify-center">
                 {isAuthenticating ? "Please wait..." : authMode === "register" ? "Create account" : "Login"}
               </button>
             </form>
           </section>
 
-          <p className="mt-4 text-center text-sm text-slate-600">{message}</p>
+          <p className="mt-4 text-center text-sm text-slate-400">{message}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <header className="rounded-3xl border border-white/80 bg-white/90 p-6 shadow-glow backdrop-blur-sm">
+    <div className="dashboard-shell min-h-screen text-slate-100">
+      <div className="grid-pattern" />
+
+      <div className="relative mx-auto max-w-7xl px-4 pb-12 pt-5 sm:px-6 lg:px-8">
+        <header className="glass-panel sticky top-4 z-20 mb-6 rounded-[28px] border border-white/10 px-4 py-4 backdrop-blur-xl sm:px-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.35em] text-amber-600">LostLink</p>
-              <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">Lost & Found dashboard</h1>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="rounded-2xl bg-slate-900 px-4 py-2.5 text-sm text-white shadow-sm">
-                Signed in as <span className="font-semibold">{user.name}</span>
+            <div className="flex items-center gap-4">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-cyan-400 shadow-[0_0_30px_rgba(99,102,241,0.5)]">
+                <span className="text-sm font-black tracking-[0.2em] text-white">L</span>
               </div>
-              <button type="button" onClick={logout} className="btn-outline">Logout</button>
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.38em] text-cyan-300">LostLink</p>
+                <p className="mt-1 text-sm text-slate-400">Find it. Return it.</p>
+              </div>
             </div>
-          </div>
 
-          <div className="mt-4 rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            {message}
+            <div className="flex items-center gap-3">
+              <div className="rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-slate-200">
+                Signed in as <span className="font-semibold text-white">{user.name}</span>
+              </div>
+              <button type="button" onClick={logout} className="nav-button">Logout</button>
+            </div>
           </div>
         </header>
 
-        <main className="mt-8 space-y-6">
-          <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-soft sm:p-5">
-            <div className="grid gap-3 md:grid-cols-[1.6fr_1fr_1fr_1fr]">
-              <input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                className="search-input"
-                placeholder="Search by title, description, location, item..."
-              />
-              <select
-                value={filters.type}
-                onChange={(event) => setFilters((current) => ({ ...current, type: event.target.value }))}
-                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 focus:border-amber-500"
-              >
-                <option value="">All types</option>
-                <option value="lost">Lost</option>
-                <option value="found">Found</option>
-              </select>
-              <select
-                value={filters.category}
-                onChange={(event) => setFilters((current) => ({ ...current, category: event.target.value }))}
-                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 focus:border-amber-500"
-              >
-                <option value="">All categories</option>
-                {categories.map((category) => (
-                  <option key={category} value={category}>{category}</option>
-                ))}
-              </select>
-              <select
-                value={filters.status}
-                onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value }))}
-                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 focus:border-amber-500"
-              >
-                <option value="">All statuses</option>
-                <option value="open">Open</option>
-                <option value="match_suggested">Match Suggested</option>
-                <option value="claim_pending">Claim Pending</option>
-                <option value="verified">Verified</option>
-                <option value="returned">Returned</option>
-                <option value="closed">Closed</option>
-              </select>
+        <main className="space-y-6">
+          <section className="glass-panel relative overflow-hidden rounded-[28px] border border-white/10 p-5 sm:p-6">
+            <div className="absolute -top-16 right-10 h-40 w-40 rounded-full bg-purple-500/20 blur-3xl" />
+            <div className="absolute bottom-0 left-10 h-28 w-28 rounded-full bg-cyan-500/20 blur-3xl" />
+
+            <div className="relative grid gap-6 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
+              <div>
+                <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.32em] text-cyan-200">
+                  <span className="h-2 w-2 rounded-full bg-cyan-300" />
+                  Live network
+                </div>
+                <h1 className="text-3xl font-black tracking-tight text-white sm:text-4xl lg:text-5xl">
+                  Welcome back, <span className="bg-gradient-to-r from-cyan-300 via-indigo-300 to-purple-300 bg-clip-text text-transparent">{user.name}</span>
+                </h1>
+                <p className="mt-4 max-w-xl text-base text-slate-300">
+                  Reconnect lost belongings with their owners and keep each recovery flow moving in real time.
+                </p>
+
+                <div className="mt-6 flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={() => document.getElementById("report-form")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                    className="primary-button"
+                  >
+                    Report an item
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                    className="secondary-button"
+                  >
+                    Browse reports
+                  </button>
+                </div>
+              </div>
+
+              <div className="glass-panel rounded-[24px] border border-white/10 bg-slate-950/40 p-4">
+                <div className="flex items-center justify-between text-xs uppercase tracking-[0.28em] text-slate-400">
+                  <span>System status</span>
+                  <span className="rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2 py-1 text-[9px] text-emerald-300">Online</span>
+                </div>
+
+                <div className="mt-5 space-y-4">
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                    <p className="text-[10px] uppercase tracking-[0.28em] text-slate-400">Open reports</p>
+                    <p className="mt-2 text-3xl font-black text-white">{items.length}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+                      <p className="text-[10px] uppercase tracking-[0.28em] text-slate-400">Matches</p>
+                      <p className="mt-2 text-xl font-bold text-cyan-300">{matches.length}</p>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+                      <p className="text-[10px] uppercase tracking-[0.28em] text-slate-400">Claims</p>
+                      <p className="mt-2 text-xl font-bold text-purple-300">{items.filter((item) => item.status === "claim_pending").length}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </section>
 
-          <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-            <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-soft sm:p-5">
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <h2 className="text-xl font-bold text-slate-900">Recent posts</h2>
-                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">
+          <section className="glass-panel rounded-[26px] border border-white/10 p-4 sm:p-5">
+            <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
+              <div className="relative flex-1">
+                <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-cyan-300">◉</span>
+                <input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  className="futuristic-input pl-10"
+                  placeholder="Search lost items, locations, descriptions..."
+                />
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-3 xl:w-[46rem]">
+                <select
+                  value={filters.type}
+                  onChange={(event) => setFilters((current) => ({ ...current, type: event.target.value }))}
+                  className="futuristic-select"
+                >
+                  <option value="">All types</option>
+                  <option value="lost">Lost</option>
+                  <option value="found">Found</option>
+                </select>
+
+                <select
+                  value={filters.category}
+                  onChange={(event) => setFilters((current) => ({ ...current, category: event.target.value }))}
+                  className="futuristic-select"
+                >
+                  <option value="">All categories</option>
+                  {categories.map((category) => (
+                    <option key={category} value={category}>{category}</option>
+                  ))}
+                </select>
+
+                <select
+                  value={filters.status}
+                  onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value }))}
+                  className="futuristic-select"
+                >
+                  <option value="">All statuses</option>
+                  <option value="open">Open</option>
+                  <option value="match_suggested">Match Suggested</option>
+                  <option value="claim_pending">Claim Pending</option>
+                  <option value="verified">Verified</option>
+                  <option value="returned">Returned</option>
+                  <option value="closed">Closed</option>
+                </select>
+              </div>
+            </div>
+          </section>
+
+          <div className="grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
+            <section className="glass-panel rounded-[28px] border border-white/10 p-4 sm:p-5">
+              <div className="mb-5 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.32em] text-slate-400">Feed</p>
+                  <h2 className="mt-2 text-2xl font-bold text-white">Recent posts</h2>
+                </div>
+                <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-300">
                   {items.length} items
                 </span>
               </div>
@@ -424,28 +503,28 @@ function App() {
               {isLoadingItems ? (
                 <div className="grid gap-4 md:grid-cols-2">
                   {[1, 2, 3, 4].map((index) => (
-                    <div key={index} className="animate-pulse rounded-3xl border border-slate-200 bg-slate-100 p-4">
-                      <div className="h-36 rounded-2xl bg-slate-200" />
-                      <div className="mt-4 h-4 w-20 rounded bg-slate-200" />
-                      <div className="mt-3 h-6 w-3/4 rounded bg-slate-200" />
-                      <div className="mt-3 h-4 w-full rounded bg-slate-200" />
-                      <div className="mt-2 h-4 w-2/3 rounded bg-slate-200" />
+                    <div key={index} className="animate-pulse rounded-3xl border border-white/10 bg-white/[0.03] p-3">
+                      <div className="h-44 rounded-2xl bg-slate-700/80" />
+                      <div className="mt-4 h-3 w-20 rounded-full bg-slate-700/80" />
+                      <div className="mt-3 h-5 w-3/4 rounded-full bg-slate-700/80" />
+                      <div className="mt-3 h-3 w-full rounded-full bg-slate-700/80" />
+                      <div className="mt-2 h-3 w-2/3 rounded-full bg-slate-700/80" />
                     </div>
                   ))}
                 </div>
               ) : items.length ? (
                 <div className="grid gap-4 md:grid-cols-2">
                   {items.map((item) => (
-                    <div
+                    <article
                       key={item.id}
+                      className={`group cursor-pointer overflow-hidden rounded-3xl border p-3 transition-all duration-300 hover:-translate-y-1 hover:border-cyan-400/40 hover:shadow-[0_0_30px_rgba(34,211,238,0.18)] ${selectedItem?.id === item.id ? "border-cyan-400/40 bg-cyan-500/5" : "border-white/10 bg-white/[0.02]"}`}
                       onClick={() => setSelectedItem(item)}
-                      className={`cursor-pointer rounded-3xl border p-3 transition duration-200 hover:-translate-y-1 hover:shadow-soft ${selectedItem?.id === item.id ? "border-amber-300 bg-amber-50" : "border-slate-200 bg-slate-50 hover:border-slate-300"}`}
                     >
                       <div className="overflow-hidden rounded-2xl">
                         <img
                           src={item.imageUrl || fallbackImage}
                           alt={item.title}
-                          className="h-40 w-full object-cover transition duration-200 hover:scale-[1.02]"
+                          className="h-44 w-full object-cover transition-transform duration-300 group-hover:scale-105"
                           onError={(event) => {
                             event.currentTarget.src = fallbackImage;
                           }}
@@ -454,42 +533,50 @@ function App() {
 
                       <div className="mt-4 flex items-start justify-between gap-3">
                         <div>
-                          <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-slate-500">{item.type}</p>
-                          <h3 className="mt-2 text-lg font-bold text-slate-900">{item.title}</h3>
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-slate-400">{item.type}</p>
+                          <h3 className="mt-2 text-xl font-bold text-white">{item.title}</h3>
                         </div>
-                        <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${statusBadge[item.status] || "bg-slate-200 text-slate-700"}`}>
+                        <span className={`status-pill ${statusBadge[item.status] || "border-slate-400/40 bg-slate-500/10 text-slate-200"}`}>
                           {item.status}
                         </span>
                       </div>
 
-                      <div className="mt-3 space-y-1 text-sm text-slate-600">
+                      <div className="mt-3 space-y-1 text-sm text-slate-300">
                         <p>{item.category} · {item.location}</p>
                         <p>{formatDate(item.eventDate || item.createdAt)}</p>
                       </div>
 
-                      <p className="mt-3 line-clamp-3 text-sm text-slate-600">{item.description}</p>
+                      <p className="mt-3 line-clamp-3 text-sm text-slate-400">{item.description}</p>
 
-                      <div className="mt-4 flex items-center justify-between gap-3 border-t border-slate-200 pt-3">
-                        <span className="text-xs text-slate-500">Posted by {item.owner?.name || "Unknown"}</span>
-                        <button type="button" className="rounded-xl bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-700">View details</button>
+                      <div className="mt-4 flex items-center justify-between border-t border-white/10 pt-3">
+                        <span className="text-xs text-slate-500">By {item.owner?.name || "Unknown"}</span>
+                        <button type="button" className="inline-flex items-center gap-2 rounded-xl border border-cyan-400/30 bg-cyan-500/10 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-200 transition hover:bg-cyan-500/20">
+                          View
+                        </button>
                       </div>
-                    </div>
+                    </article>
                   ))}
                 </div>
               ) : (
-                <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center">
-                  <p className="text-lg font-semibold text-slate-700">No posts match your filters</p>
-                  <p className="mt-2 text-sm text-slate-500">Try a different search or report a new item.</p>
+                <div className="empty-panel">
+                  <div className="empty-mark">◇</div>
+                  <h3>No reports found</h3>
+                  <p>Try changing your filters or report a new item.</p>
                 </div>
               )}
             </section>
 
             <div className="space-y-6">
-              <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-soft sm:p-5">
-                <h2 className="text-xl font-bold text-slate-900">Selected item</h2>
+              <section className="glass-panel rounded-[28px] border border-white/10 p-4 sm:p-5">
+                <div className="mb-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.32em] text-slate-400">Details</p>
+                    <h2 className="mt-2 text-2xl font-bold text-white">Selected item</h2>
+                  </div>
+                </div>
 
                 {selectedItem ? (
-                  <div className="mt-4 space-y-4 rounded-3xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="space-y-4 rounded-3xl border border-white/10 bg-slate-950/40 p-4">
                     <div className="overflow-hidden rounded-2xl">
                       <img
                         src={selectedItem.imageUrl || fallbackImage}
@@ -501,188 +588,281 @@ function App() {
                       />
                     </div>
 
-                    <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-slate-500">{selectedItem.type}</p>
-                        <h3 className="mt-2 text-2xl font-bold text-slate-900">{selectedItem.title}</h3>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-slate-400">{selectedItem.type}</p>
+                        <h3 className="mt-2 text-2xl font-bold text-white">{selectedItem.title}</h3>
                       </div>
-                      <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${statusBadge[selectedItem.status] || "bg-slate-200 text-slate-700"}`}>
+                      <span className={`status-pill ${statusBadge[selectedItem.status] || "border-slate-400/40 bg-slate-500/10 text-slate-200"}`}>
                         {selectedItem.status}
                       </span>
                     </div>
 
-                    <div className="grid gap-2 text-sm text-slate-600 sm:grid-cols-2">
-                      <p><span className="font-semibold text-slate-900">Category:</span> {selectedItem.category}</p>
-                      <p><span className="font-semibold text-slate-900">Location:</span> {selectedItem.location}</p>
-                      <p><span className="font-semibold text-slate-900">Date:</span> {formatDate(selectedItem.eventDate || selectedItem.createdAt)}</p>
-                      <p><span className="font-semibold text-slate-900">Posted by:</span> {selectedItem.owner?.name || "Unknown"}</p>
+                    <div className="grid gap-3 text-sm text-slate-300 sm:grid-cols-2">
+                      <p><span className="text-white">Category:</span> {selectedItem.category}</p>
+                      <p><span className="text-white">Location:</span> {selectedItem.location}</p>
+                      <p><span className="text-white">Date:</span> {formatDate(selectedItem.eventDate || selectedItem.createdAt)}</p>
+                      <p><span className="text-white">Owner:</span> {selectedItem.owner?.name || "Unknown"}</p>
                     </div>
 
-                    <div className="rounded-2xl bg-white p-3 text-sm text-slate-700">
+                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3 text-sm text-slate-300">
                       {selectedItem.description}
                     </div>
 
-                    <div className="rounded-2xl border border-slate-200 bg-white p-3 text-sm text-slate-700">
-                      <span className="font-semibold text-slate-900">Verification question:</span> {selectedItem.verificationQuestion}
+                    <div className="rounded-2xl border border-dashed border-cyan-400/30 bg-cyan-500/5 p-3 text-sm text-slate-300">
+                      <span className="text-white">Verification question:</span> {selectedItem.verificationQuestion}
                     </div>
 
-                    <form onSubmit={handleClaimSubmit} className="space-y-3">
-                      <input
-                        value={claimAnswer}
-                        onChange={(event) => setClaimAnswer(event.target.value)}
-                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-amber-500"
-                        placeholder="Answer the verification question"
-                      />
-                      <button type="submit" disabled={isClaiming} className="w-full btn-accent">{isClaiming ? "Checking claim..." : "Submit claim"}</button>
-                    </form>
+                    <button type="button" onClick={() => setShowClaimModal(true)} className="primary-button w-full justify-center">
+                      Verify claim
+                    </button>
                   </div>
                 ) : (
-                  <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-500">
-                    Select a report to view its full details and verification workflow.
+                  <div className="empty-panel mt-4">
+                    <div className="empty-mark">◇</div>
+                    <h3>Select a report</h3>
+                    <p>Choose an item to view its details and claim information.</p>
                   </div>
                 )}
               </section>
 
-              <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-soft sm:p-5">
-                <h2 className="text-xl font-bold text-slate-900">Possible matches</h2>
+              <section className="glass-panel rounded-[28px] border border-white/10 p-4 sm:p-5">
+                <div className="mb-4">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.32em] text-slate-400">AI matching</p>
+                  <h2 className="mt-2 text-2xl font-bold text-white">Possible matches</h2>
+                </div>
 
                 {isLoadingMatches ? (
-                  <div className="mt-4 space-y-3">
+                  <div className="space-y-3">
                     {[1, 2].map((index) => (
-                      <div key={index} className="animate-pulse rounded-2xl border border-slate-200 bg-slate-100 p-4">
-                        <div className="h-4 w-1/3 rounded bg-slate-200" />
-                        <div className="mt-2 h-4 w-2/3 rounded bg-slate-200" />
-                        <div className="mt-3 h-4 w-full rounded bg-slate-200" />
+                      <div key={index} className="animate-pulse rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                        <div className="h-4 w-1/3 rounded-full bg-slate-700/80" />
+                        <div className="mt-3 h-4 w-2/3 rounded-full bg-slate-700/80" />
+                        <div className="mt-3 h-3 w-full rounded-full bg-slate-700/80" />
                       </div>
                     ))}
                   </div>
                 ) : matches.length ? (
-                  <div className="mt-4 space-y-3">
+                  <div className="space-y-3">
                     {matches.map((match) => (
-                      <div key={match.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                      <div key={match.id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
                         <div className="flex items-start justify-between gap-3">
                           <div>
-                            <h3 className="text-base font-bold text-slate-900">{match.title}</h3>
-                            <p className="mt-1 text-sm text-slate-600">{match.category} · {match.location}</p>
+                            <h3 className="text-base font-bold text-white">{match.title}</h3>
+                            <p className="mt-1 text-sm text-slate-300">{match.category} · {match.location}</p>
                           </div>
-                          <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-amber-700">
-                            {match.score}%
+                          <span className="rounded-full border border-cyan-400/30 bg-cyan-500/10 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.2em] text-cyan-200">
+                            {match.score || 0}%
                           </span>
                         </div>
-                        <p className="mt-3 text-sm text-slate-600">{match.reasons?.join(", ") || "Similar title, category, and location"}</p>
-                        <button type="button" onClick={() => setSelectedItem(match)} className="mt-3 inline-flex rounded-xl bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-700">
+                        <p className="mt-3 text-sm text-slate-400">{match.reasons?.join(", ") || "Similar title, category, and location"}</p>
+                        <button type="button" onClick={() => setSelectedItem(match)} className="mt-3 inline-flex rounded-xl border border-white/10 bg-slate-900 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-200 hover:border-white/20">
                           View
                         </button>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-500">
-                    No possible matches yet. Try posting a more descriptive item.
+                  <div className="empty-panel mt-4">
+                    <div className="empty-mark">◇</div>
+                    <h3>No matches yet</h3>
+                    <p>Similar reports will appear here when detected.</p>
                   </div>
                 )}
               </section>
             </div>
           </div>
 
-          <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-soft">
-            <div className="flex items-center justify-between gap-4">
+          <section id="report-form" className="glass-panel rounded-[30px] border border-white/10 p-4 sm:p-5 lg:p-6">
+            <div className="mb-5 flex items-center justify-between gap-3">
               <div>
-                <h2 className="text-xl font-bold text-slate-900">Report an item</h2>
-                <p className="mt-1 text-sm text-slate-500">Submit a lost or found report with an image upload.</p>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.32em] text-slate-400">Submit</p>
+                <h2 className="mt-2 text-2xl font-bold text-white">Report an item</h2>
+              </div>
+              <div className="rounded-full border border-purple-400/30 bg-purple-500/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.24em] text-purple-200">
+                secure flow
               </div>
             </div>
 
-            <form onSubmit={handleItemSubmit} className="mt-5 space-y-4">
-              <div className="grid gap-2 rounded-2xl bg-slate-100 p-2 sm:grid-cols-2">
-                {["lost", "found"].map((value) => (
+            <form onSubmit={handleItemSubmit} className="space-y-5">
+              <div className="grid gap-2 rounded-2xl border border-white/10 bg-white/[0.02] p-2 sm:grid-cols-2">
+                {[
+                  { value: "lost", label: "Lost" },
+                  { value: "found", label: "Found" }
+                ].map((option) => (
                   <button
-                    key={value}
+                    key={option.value}
                     type="button"
-                    onClick={() => setItemForm((current) => ({ ...current, type: value }))}
-                    className={`rounded-xl px-3 py-2.5 text-sm font-semibold transition ${itemForm.type === value ? "bg-slate-900 text-white" : "text-slate-600 hover:text-slate-900"}`}
+                    onClick={() => setItemForm((current) => ({ ...current, type: option.value }))}
+                    className={`rounded-xl px-3 py-2.5 text-sm font-semibold transition ${itemForm.type === option.value ? "bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-400 text-white shadow-[0_0_20px_rgba(99,102,241,0.3)]" : "text-slate-300 hover:text-white"}`}
                   >
-                    {value === "lost" ? "Lost" : "Found"}
+                    {option.label}
                   </button>
                 ))}
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
-                <input
-                  value={itemForm.title}
-                  onChange={(event) => setItemForm((current) => ({ ...current, title: event.target.value }))}
-                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-amber-500"
-                  placeholder="Item title"
-                />
-                <select
-                  value={itemForm.category}
-                  onChange={(event) => setItemForm((current) => ({ ...current, category: event.target.value }))}
-                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 focus:border-amber-500"
+                <div className="space-y-2">
+                  <label className="label-text">Title</label>
+                  <input value={itemForm.title} onChange={(event) => setItemForm((current) => ({ ...current, title: event.target.value }))} className="futuristic-input" placeholder="Enter item title" />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="label-text">Category</label>
+                  <select value={itemForm.category} onChange={(event) => setItemForm((current) => ({ ...current, category: event.target.value }))} className="futuristic-select">
+                    <option value="">Select category</option>
+                    {categories.map((category) => (
+                      <option key={category} value={category}>{category}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <label className="label-text">Location</label>
+                  <input value={itemForm.location} onChange={(event) => setItemForm((current) => ({ ...current, location: event.target.value }))} className="futuristic-input" placeholder="Enter location" />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="label-text">Date</label>
+                  <input type="date" value={itemForm.eventDate} onChange={(event) => setItemForm((current) => ({ ...current, eventDate: event.target.value }))} className="futuristic-input" />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="label-text">Description</label>
+                <textarea value={itemForm.description} onChange={(event) => setItemForm((current) => ({ ...current, description: event.target.value }))} rows="4" className="futuristic-input min-h-[120px] resize-none" placeholder="Describe the item, identifying details, and where it was last seen." />
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <label className="label-text">Verification question</label>
+                  <input value={itemForm.verificationQuestion} onChange={(event) => setItemForm((current) => ({ ...current, verificationQuestion: event.target.value }))} className="futuristic-input" placeholder="Ask something only the owner would know" />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="label-text">Verification answer</label>
+                  <input value={itemForm.verificationAnswer} onChange={(event) => setItemForm((current) => ({ ...current, verificationAnswer: event.target.value }))} className="futuristic-input" placeholder="Private answer" />
+                </div>
+              </div>
+
+              <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+                <div
+                  className={`upload-panel ${isDraggingImage ? "upload-panel-active" : ""}`}
+                  onDragOver={(event) => {
+                    event.preventDefault();
+                    setIsDraggingImage(true);
+                  }}
+                  onDragLeave={() => setIsDraggingImage(false)}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    setIsDraggingImage(false);
+                    const file = event.dataTransfer.files?.[0];
+                    if (file) {
+                      const eventLike = { target: { files: [file] } };
+                      handleImageChange(eventLike);
+                    }
+                  }}
                 >
-                  <option value="">Select category</option>
-                  {categories.map((category) => (
-                    <option key={category} value={category}>{category}</option>
-                  ))}
-                </select>
+                  <input id="item-upload" type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+                  <label htmlFor="item-upload" className="flex cursor-pointer flex-col items-center justify-center text-center">
+                    <span className="text-3xl text-cyan-300">↑</span>
+                    <span className="mt-4 text-lg font-bold text-white">Upload image</span>
+                    <span className="mt-2 max-w-xs text-sm text-slate-400">Drag & drop or browse</span>
+                    <span className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-500">PNG / JPG / JPEG / GIF</span>
+                    <span className="mt-3 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[10px] uppercase tracking-[0.22em] text-slate-300">Max 10 MB</span>
+                  </label>
+                </div>
+
+                <div className="rounded-3xl border border-white/10 bg-slate-950/40 p-4">
+                  {imagePreview ? (
+                    <div className="space-y-3">
+                      <div className="overflow-hidden rounded-2xl border border-white/10">
+                        <img src={imagePreview} alt="Preview" className="h-52 w-full object-cover" />
+                      </div>
+                      <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-slate-300">
+                        <div>
+                          <p className="font-medium text-white">{selectedImage?.name || "image"}</p>
+                          <p className="text-xs text-slate-400">
+                            {selectedImage ? `${Math.round((selectedImage.size / (1024 * 1024)) * 10) / 10} MB` : ""}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedImage(null);
+                            setImagePreview("");
+                          }}
+                          className="rounded-xl border border-white/10 bg-slate-900 px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-300 hover:border-red-400/40 hover:text-red-200"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex h-full min-h-[220px] items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/[0.02] text-center text-sm text-slate-500">
+                      No image selected yet.
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <div className="grid gap-4 md:grid-cols-2">
-                <input
-                  value={itemForm.location}
-                  onChange={(event) => setItemForm((current) => ({ ...current, location: event.target.value }))}
-                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-amber-500"
-                  placeholder="Location"
-                />
-                <input
-                  type="date"
-                  value={itemForm.eventDate}
-                  onChange={(event) => setItemForm((current) => ({ ...current, eventDate: event.target.value }))}
-                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 focus:border-amber-500"
-                />
-              </div>
-
-              <textarea
-                value={itemForm.description}
-                onChange={(event) => setItemForm((current) => ({ ...current, description: event.target.value }))}
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-amber-500"
-                rows="4"
-                placeholder="Tell us what happened, what it looks like, and any identifying details."
-              />
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <input
-                  value={itemForm.verificationQuestion}
-                  onChange={(event) => setItemForm((current) => ({ ...current, verificationQuestion: event.target.value }))}
-                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-amber-500"
-                  placeholder="Verification question"
-                />
-                <input
-                  value={itemForm.verificationAnswer}
-                  onChange={(event) => setItemForm((current) => ({ ...current, verificationAnswer: event.target.value }))}
-                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-amber-500"
-                  placeholder="Hidden verification answer"
-                />
-              </div>
-
-              <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
-                <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-5 text-center text-sm text-slate-600 transition hover:border-amber-400 hover:text-slate-900">
-                  <span className="font-semibold text-slate-800">Upload item image</span>
-                  <span className="mt-1 text-xs text-slate-500">PNG, JPG, WEBP, or GIF up to 10MB</span>
-                  <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
-                </label>
-
-                {imagePreview ? (
-                  <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white">
-                    <img src={imagePreview} alt="Preview" className="h-48 w-full object-cover" />
-                  </div>
-                ) : null}
-              </div>
-
-              <button type="submit" disabled={isSubmittingItem} className="w-full btn-dark">{isSubmittingItem ? "Uploading report..." : "Submit report"}</button>
+              <button type="submit" disabled={isSubmittingItem} className="primary-button w-full justify-center">
+                {isSubmittingItem ? "Submitting report..." : "Submit report"}
+              </button>
             </form>
           </section>
         </main>
       </div>
+
+      {showClaimModal && selectedItem ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 px-4 backdrop-blur-md">
+          <div className="glass-panel w-full max-w-lg rounded-[28px] border border-white/10 p-5 sm:p-6">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.32em] text-cyan-300">Secure verification</p>
+                <h3 className="mt-2 text-2xl font-bold text-white">Verify ownership</h3>
+              </div>
+              <button type="button" onClick={() => setShowClaimModal(false)} className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-sm text-slate-300 hover:border-white/20">
+                ✕
+              </button>
+            </div>
+
+            <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-slate-300">
+              Answer the verification question provided by the person who reported this item.
+            </div>
+
+            <form onSubmit={handleClaimSubmit} className="mt-5 space-y-4">
+              <div className="space-y-2">
+                <label className="label-text">Question</label>
+                <div className="rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3 text-sm text-slate-200">
+                  {selectedItem.verificationQuestion}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="label-text">Your answer</label>
+                <input
+                  value={claimAnswer}
+                  onChange={(event) => setClaimAnswer(event.target.value)}
+                  className="futuristic-input"
+                  placeholder="Type the answer here..."
+                />
+              </div>
+
+              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <button type="button" onClick={() => setShowClaimModal(false)} className="secondary-button justify-center sm:w-auto">
+                  Cancel
+                </button>
+                <button type="submit" disabled={isClaiming} className="primary-button justify-center sm:w-auto">
+                  {isClaiming ? "Verifying..." : "Verify & claim"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
