@@ -181,7 +181,7 @@ function App() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 to-white">
         <div className="mx-auto w-full max-w-md px-4 py-6">
-          <header className="mb-6 rounded-3xl border border-white/70 bg-white/80 p-6 shadow-glow">
+          <header className="hero mb-6">
             <p className="text-sm font-semibold uppercase tracking-[0.3em] text-gold">LostLink</p>
             <h1 className="mt-2 text-2xl font-black text-ink">Secure digital lost-and-found</h1>
             <p className="mt-3 text-sm text-slate-600">Sign in or create an account to continue.</p>
@@ -212,7 +212,7 @@ function App() {
   return (
     <div className="min-h-screen">
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <header className="mb-8 rounded-3xl border border-white/70 bg-white/80 p-6 shadow-glow backdrop-blur">
+        <header className="hero mb-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.3em] text-gold">LostLink</p>
@@ -239,7 +239,7 @@ function App() {
 
         <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
           <aside className="space-y-6">
-            <section className="rounded-3xl border border-white/70 bg-white p-5 shadow-glow">
+            <section className="card">
               <div className="mb-4 flex gap-2">
                 <button onClick={() => setAuthMode("login")} className={`rounded-xl px-3 py-2 text-sm font-semibold ${authMode === "login" ? "bg-ink text-white" : "bg-slate-100 text-slate-600"}`}>Login</button>
                 <button onClick={() => setAuthMode("register")} className={`rounded-xl px-3 py-2 text-sm font-semibold ${authMode === "register" ? "bg-ink text-white" : "bg-slate-100 text-slate-600"}`}>Register</button>
@@ -256,7 +256,7 @@ function App() {
               </form>
             </section>
 
-            <section className="rounded-3xl border border-white/70 bg-white p-5 shadow-glow">
+            <section className="card">
               <h2 className="text-lg font-bold text-ink">Report an item</h2>
               <form className="mt-4 space-y-3" onSubmit={handleItemSubmit}>
                 <div className="grid grid-cols-2 gap-2 rounded-2xl bg-slate-100 p-2">
@@ -288,7 +288,7 @@ function App() {
           </aside>
 
           <main className="space-y-6">
-            <section className="rounded-3xl border border-white/70 bg-white p-5 shadow-glow">
+            <section className="card">
               <div className="grid gap-3 md:grid-cols-[1.5fr_repeat(3,minmax(0,1fr))]">
                 <input className="rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-gold" placeholder="Search by title, description, location, category" value={search} onChange={(e) => setSearch(e.target.value)} />
                 <select className="rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-gold" value={filters.type} onChange={(e) => setFilters((current) => ({ ...current, type: e.target.value }))}>
@@ -313,7 +313,7 @@ function App() {
             </section>
 
             <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-              <div className="rounded-3xl border border-white/70 bg-white p-5 shadow-glow">
+              <div className="card">
                 <h2 className="text-lg font-bold text-ink">Recent posts</h2>
                 <div className="mt-4 grid gap-4 md:grid-cols-2">
                   {items.map((item) => (
@@ -333,7 +333,7 @@ function App() {
               </div>
 
               <div className="space-y-6">
-                <section className="rounded-3xl border border-white/70 bg-white p-5 shadow-glow">
+                <section className="card">
                   <h2 className="text-lg font-bold text-ink">Selected item</h2>
                   {selectedItem ? (
                     <div className="mt-4 space-y-3 rounded-3xl bg-slate-50 p-4">
@@ -357,7 +357,7 @@ function App() {
                   )}
                 </section>
 
-                <section className="rounded-3xl border border-white/70 bg-white p-5 shadow-glow">
+                <section className="card">
                   <h2 className="text-lg font-bold text-ink">Possible matches</h2>
                   <div className="mt-4 space-y-3">
                     {matches.map((match) => (
