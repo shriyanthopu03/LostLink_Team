@@ -4,5 +4,8 @@
     "eslint": "^9.7.0",
     "eslint-plugin-react": "^7.37.5",
     "globals": "^15.8.0"
+  },
+  "dependencies": {
+    "firebase": "^12.18.0"
   }
 }

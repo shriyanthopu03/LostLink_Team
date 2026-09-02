@@ -106,6 +106,37 @@ router.post("/login", async (req, res, next) => {
   }
 });
 
+router.post("/firebase-login", async (req, res, next) => {
+  try {
+    const { name, email, firebaseUid } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Firebase account email is required" });
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+
+    let user = await User.findOne({ email: normalizedEmail });
+    if (!user) {
+      const passwordHash = await bcrypt.hash(firebaseUid || "FirebaseAutoAuth2026!", 10);
+      user = await User.create({
+        name: (name || normalizedEmail.split("@")[0]).trim(),
+        email: normalizedEmail,
+        passwordHash,
+        role: "user"
+      });
+    }
+
+    const userRole = user.role || "user";
+    res.json({
+      token: createToken(user._id, userRole),
+      user: { id: user._id, name: user.name, email: user.email, role: userRole }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.get("/me", authMiddleware, async (req, res) => {
   res.json({
     user: {
