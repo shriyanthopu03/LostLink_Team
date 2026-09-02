@@ -25,29 +25,37 @@ const uploadImageToCloudinary = async (file) => {
     return { imageUrl: "", imagePublicId: "" };
   }
 
-  const uploadResult = await new Promise((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream(
-      {
-        folder: "lost-and-found/items",
-        resource_type: "image",
-        transformation: [{ quality: "auto", fetch_format: "auto" }]
-      },
-      (error, result) => {
-        if (error) {
-          reject(error);
-          return;
+  if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+    throw new Error("Cloudinary is not configured. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET.");
+  }
+
+  try {
+    const uploadResult = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        {
+          folder: "lost-and-found/items",
+          resource_type: "image",
+          transformation: [{ quality: "auto", fetch_format: "auto" }]
+        },
+        (error, result) => {
+          if (error) {
+            reject(error);
+            return;
+          }
+          resolve(result);
         }
-        resolve(result);
-      }
-    );
+      );
 
-    stream.end(file.buffer);
-  });
+      stream.end(file.buffer);
+    });
 
-  return {
-    imageUrl: uploadResult.secure_url,
-    imagePublicId: uploadResult.public_id
-  };
+    return {
+      imageUrl: uploadResult.secure_url,
+      imagePublicId: uploadResult.public_id
+    };
+  } catch (error) {
+    throw new Error(`Image upload failed: ${error.message || "Cloudinary upload error"}`);
+  }
 };
 
 export const listItems = async (req, res, next) => {
