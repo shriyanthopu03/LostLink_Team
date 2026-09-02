@@ -177,6 +177,38 @@ function App() {
     setMessage("Logged out.");
   }
 
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 to-white">
+        <div className="mx-auto w-full max-w-md px-4 py-6">
+          <header className="mb-6 rounded-3xl border border-white/70 bg-white/80 p-6 shadow-glow">
+            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-gold">LostLink</p>
+            <h1 className="mt-2 text-2xl font-black text-ink">Secure digital lost-and-found</h1>
+            <p className="mt-3 text-sm text-slate-600">Sign in or create an account to continue.</p>
+          </header>
+
+          <section className="rounded-3xl border border-white/70 bg-white p-5 shadow-glow">
+            <div className="mb-4 flex gap-2">
+              <button onClick={() => setAuthMode("login")} className={`rounded-xl px-3 py-2 text-sm font-semibold ${authMode === "login" ? "bg-ink text-white" : "bg-slate-100 text-slate-600"}`}>Login</button>
+              <button onClick={() => setAuthMode("register")} className={`rounded-xl px-3 py-2 text-sm font-semibold ${authMode === "register" ? "bg-ink text-white" : "bg-slate-100 text-slate-600"}`}>Register</button>
+            </div>
+            <form className="space-y-3" onSubmit={handleAuthSubmit}>
+              {authMode === "register" && (
+                <input className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-gold" placeholder="Full name" value={authForm.name} onChange={(e) => setAuthForm((current) => ({ ...current, name: e.target.value }))} />
+              )}
+              <input className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-gold" placeholder="Email" type="email" value={authForm.email} onChange={(e) => setAuthForm((current) => ({ ...current, email: e.target.value }))} />
+              <input className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-gold" placeholder="Password" type="password" value={authForm.password} onChange={(e) => setAuthForm((current) => ({ ...current, password: e.target.value }))} />
+              <button disabled={loading} className="w-full rounded-2xl bg-gold px-4 py-3 font-semibold text-white transition hover:brightness-110 disabled:opacity-60">
+                {authMode === "register" ? "Create account" : "Sign in"}
+              </button>
+            </form>
+          </section>
+          <div className="mt-4 text-center text-sm text-amber-900">{message}</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen">
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
