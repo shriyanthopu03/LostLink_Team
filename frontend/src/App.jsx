@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const fallbackImage = "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1200&q=80";
 
 const defaultForm = {
   type: "lost",
@@ -9,7 +10,6 @@ const defaultForm = {
   description: "",
   location: "",
   eventDate: "",
-  imageUrl: "",
   verificationQuestion: "",
   verificationAnswer: ""
 };
@@ -27,12 +27,13 @@ const statusBadge = {
 
 function App() {
   const [authMode, setAuthMode] = useState("login");
-  const [token, setToken] = useState(localStorage.getItem("lostlink-token") || "");
+  const [token, setToken] = useState(() => localStorage.getItem("lostlink-token") || "");
   const [user, setUser] = useState(() => {
     const stored = localStorage.getItem("lostlink-user");
     return stored ? JSON.parse(stored) : null;
   });
   const [authForm, setAuthForm] = useState({ name: "", email: "", password: "" });
+  const isAuthenticated = Boolean(user && token);
   const [itemForm, setItemForm] = useState(defaultForm);
   const [items, setItems] = useState([]);
   const [matches, setMatches] = useState([]);
@@ -40,82 +41,131 @@ function App() {
   const [filters, setFilters] = useState({ type: "", category: "", status: "" });
   const [selectedItem, setSelectedItem] = useState(null);
   const [claimAnswer, setClaimAnswer] = useState("");
-  const [message, setMessage] = useState("Connect your MongoDB Atlas URI in frontend/.env and backend/.env, then start both apps.");
-  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("Sign in or create an account to start reporting items.");
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [isSubmittingItem, setIsSubmittingItem] = useState(false);
+  const [isClaiming, setIsClaiming] = useState(false);
+  const [isLoadingItems, setIsLoadingItems] = useState(false);
+  const [isLoadingMatches, setIsLoadingMatches] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState("");
 
   useEffect(() => {
-    loadItems();
-  }, [search, filters]);
+    if (user) {
+      loadItems();
+    }
+  }, [user, search, filters]);
 
   useEffect(() => {
+    if (!user) {
+      setItems([]);
+      setSelectedItem(null);
+      setMatches([]);
+      return;
+    }
+
     if (selectedItem) {
       loadMatches(selectedItem.id);
     } else {
       setMatches([]);
     }
-  }, [selectedItem]);
+  }, [selectedItem, user]);
 
-  const headers = useMemo(() => {
-    const base = { "Content-Type": "application/json" };
-    return token ? { ...base, Authorization: `Bearer ${token}` } : base;
-  }, [token]);
+  useEffect(() => {
+    return () => {
+      if (imagePreview) URL.revokeObjectURL(imagePreview);
+    };
+  }, [imagePreview]);
+
+  const headers = useMemo(() => ({
+    ...(token ? { Authorization: `Bearer ${token}` } : {})
+  }), [token]);
 
   async function request(path, options = {}) {
     const response = await fetch(`${API_URL}${path}`, {
       ...options,
       headers: { ...headers, ...(options.headers || {}) }
     });
-    const data = await response.json();
+
+    const text = await response.text();
+    const data = text ? JSON.parse(text) : {};
+
     if (!response.ok) {
       throw new Error(data.message || "Request failed");
     }
+
     return data;
   }
 
   async function loadItems() {
+    if (!user) return;
+
+    setIsLoadingItems(true);
     try {
       const params = new URLSearchParams();
       if (search) params.set("search", search);
       if (filters.type) params.set("type", filters.type);
       if (filters.category) params.set("category", filters.category);
       if (filters.status) params.set("status", filters.status);
+
       const data = await request(`/items?${params.toString()}`, { method: "GET" });
       setItems(data);
-      if (!selectedItem && data.length) {
+
+      if (data.length && (!selectedItem || !data.some((item) => item.id === selectedItem.id))) {
         setSelectedItem(data[0]);
       }
+
+      if (!data.length) {
+        setSelectedItem(null);
+      }
     } catch (error) {
-      setMessage(error.message);
+      setMessage(error.message || "Unable to load recent posts.");
+    } finally {
+      setIsLoadingItems(false);
     }
   }
 
   async function loadMatches(itemId) {
+    if (!itemId) return;
+
+    setIsLoadingMatches(true);
     try {
       const data = await request(`/items/${itemId}/matches`, { method: "GET" });
       setMatches(data);
     } catch (error) {
-      setMessage(error.message);
+      setMessage(error.message || "Unable to load matches.");
+    } finally {
+      setIsLoadingMatches(false);
     }
   }
 
   async function handleAuthSubmit(event) {
     event.preventDefault();
-    setLoading(true);
+    setIsAuthenticating(true);
     try {
       const path = authMode === "register" ? "/auth/register" : "/auth/login";
       const payload = authMode === "register"
         ? authForm
         : { email: authForm.email, password: authForm.password };
-      const data = await request(path, { method: "POST", body: JSON.stringify(payload), headers: { "Content-Type": "application/json" } });
+
+      const data = await request(path, {
+        method: "POST",
+        body: JSON.stringify(payload),
+        headers: { "Content-Type": "application/json" }
+      });
+
       setToken(data.token);
       localStorage.setItem("lostlink-token", data.token);
       localStorage.setItem("lostlink-user", JSON.stringify(data.user));
       setUser(data.user);
+      setToken(data.token);
+      setAuthForm({ name: "", email: "", password: "" });
+      setAuthMode("login");
       setMessage(`Welcome, ${data.user.name}`);
     } catch (error) {
-      setMessage(error.message);
+      setMessage(error.message || "Authentication failed");
     } finally {
-      setLoading(false);
+      setIsAuthenticating(false);
     }
   }
 
@@ -126,20 +176,38 @@ function App() {
       return;
     }
 
-    setLoading(true);
+    setIsSubmittingItem(true);
     try {
-      await request("/items", {
-        method: "POST",
-        body: JSON.stringify(itemForm),
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }
+      const formData = new FormData();
+      Object.entries(itemForm).forEach(([key, value]) => {
+        if (value) formData.append(key, value);
       });
+
+      if (selectedImage) {
+        formData.append("image", selectedImage);
+      }
+
+      await fetch(`${API_URL}/items`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData
+      }).then(async (response) => {
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(result.message || "Unable to submit item");
+        }
+        return result;
+      });
+
       setItemForm(defaultForm);
-      setMessage("Item posted successfully.");
+      setSelectedImage(null);
+      setImagePreview("");
+      setMessage("Report submitted successfully.");
       await loadItems();
     } catch (error) {
-      setMessage(error.message);
+      setMessage(error.message || "Unable to submit item");
     } finally {
-      setLoading(false);
+      setIsSubmittingItem(false);
     }
   }
 
@@ -151,22 +219,48 @@ function App() {
       return;
     }
 
-    setLoading(true);
+    setIsClaiming(true);
     try {
       const data = await request(`/claims/${selectedItem.id}`, {
         method: "POST",
         body: JSON.stringify({ answer: claimAnswer }),
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }
+        headers: { "Content-Type": "application/json" }
       });
+
       setMessage(data.verified ? "Claim verified. Item can be returned." : "Claim failed verification.");
       setClaimAnswer("");
       await loadItems();
       await loadMatches(selectedItem.id);
     } catch (error) {
-      setMessage(error.message);
+      setMessage(error.message || "Unable to submit claim");
     } finally {
-      setLoading(false);
+      setIsClaiming(false);
     }
+  }
+
+  function handleImageChange(event) {
+    const file = event.target.files?.[0];
+    if (!file) {
+      setSelectedImage(null);
+      setImagePreview("");
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      setMessage("Please choose a valid image file.");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setMessage("Image size must be 5MB or less.");
+      return;
+    }
+
+    const nextPreview = URL.createObjectURL(file);
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setSelectedImage(file);
+    setImagePreview(nextPreview);
+    setMessage("Image attached and ready to upload.");
   }
 
   function logout() {
@@ -174,211 +268,449 @@ function App() {
     localStorage.removeItem("lostlink-user");
     setToken("");
     setUser(null);
-    setMessage("Logged out.");
+    setAuthForm({ name: "", email: "", password: "" });
+    setAuthMode("login");
+    setSelectedItem(null);
+    setMatches([]);
+    setMessage("Logged out successfully. Please sign in again.");
   }
 
-  if (!user) {
+  function formatDate(value) {
+    if (!value) return "Unknown date";
+    return new Date(value).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+  }
+
+  if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 to-white">
-        <div className="mx-auto w-full max-w-md px-4 py-6">
-          <header className="hero mb-6">
-            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-gold">LostLink</p>
-            <h1 className="mt-2 text-2xl font-black text-ink">Secure digital lost-and-found</h1>
-            <p className="mt-3 text-sm text-slate-600">Sign in or create an account to continue.</p>
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-slate-100 px-4 py-8">
+        <div className="mx-auto max-w-md">
+          <header className="rounded-3xl border border-white/80 bg-white/90 p-6 shadow-glow backdrop-blur-sm">
+            <p className="text-xs font-bold uppercase tracking-[0.35em] text-amber-600">LostLink</p>
+            <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">Secure digital lost & found</h1>
+            <p className="mt-2 text-sm text-slate-600">Sign in to view reports, match items, and post updates.</p>
           </header>
 
-          <section className="rounded-3xl border border-white/70 bg-white p-5 shadow-glow">
-            <div className="mb-4 flex gap-2">
-              <button onClick={() => setAuthMode("login")} className={`rounded-xl px-3 py-2 text-sm font-semibold ${authMode === "login" ? "bg-ink text-white" : "bg-slate-100 text-slate-600"}`}>Login</button>
-              <button onClick={() => setAuthMode("register")} className={`rounded-xl px-3 py-2 text-sm font-semibold ${authMode === "register" ? "bg-ink text-white" : "bg-slate-100 text-slate-600"}`}>Register</button>
+          <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-soft">
+            <div className="mb-5 flex gap-2 rounded-2xl bg-slate-100 p-1">
+              <button
+                type="button"
+                onClick={() => setAuthMode("login")}
+                className={`flex-1 rounded-xl px-3 py-2 text-sm font-semibold transition ${authMode === "login" ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
+              >
+                Login
+              </button>
+              <button
+                type="button"
+                onClick={() => setAuthMode("register")}
+                className={`flex-1 rounded-xl px-3 py-2 text-sm font-semibold transition ${authMode === "register" ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
+              >
+                Register
+              </button>
             </div>
+
             <form className="space-y-3" onSubmit={handleAuthSubmit}>
               {authMode === "register" && (
-                <input className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-gold" placeholder="Full name" value={authForm.name} onChange={(e) => setAuthForm((current) => ({ ...current, name: e.target.value }))} />
+                <input
+                  type="text"
+                  value={authForm.name}
+                  onChange={(event) => setAuthForm((current) => ({ ...current, name: event.target.value }))}
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-amber-500"
+                  placeholder="Full name"
+                />
               )}
-              <input className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-gold" placeholder="Email" type="email" value={authForm.email} onChange={(e) => setAuthForm((current) => ({ ...current, email: e.target.value }))} />
-              <input className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-gold" placeholder="Password" type="password" value={authForm.password} onChange={(e) => setAuthForm((current) => ({ ...current, password: e.target.value }))} />
-              <button disabled={loading} className="w-full rounded-2xl bg-gold px-4 py-3 font-semibold text-white transition hover:brightness-110 disabled:opacity-60">
-                {authMode === "register" ? "Create account" : "Sign in"}
+              <input
+                type="email"
+                value={authForm.email}
+                onChange={(event) => setAuthForm((current) => ({ ...current, email: event.target.value }))}
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-amber-500"
+                placeholder="Email"
+              />
+              <input
+                type="password"
+                value={authForm.password}
+                onChange={(event) => setAuthForm((current) => ({ ...current, password: event.target.value }))}
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-amber-500"
+                placeholder="Password"
+              />
+              <button
+                type="submit"
+                disabled={isAuthenticating}
+                className="w-full rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-amber-200 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {isAuthenticating ? "Please wait..." : authMode === "register" ? "Create account" : "Login"}
               </button>
             </form>
           </section>
-          <div className="mt-4 text-center text-sm text-amber-900">{message}</div>
+
+          <p className="mt-4 text-center text-sm text-slate-600">{message}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-slate-50 text-slate-900">
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <header className="hero mb-8">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <header className="rounded-3xl border border-white/80 bg-white/90 p-6 shadow-glow backdrop-blur-sm">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-gold">LostLink</p>
-              <h1 className="mt-2 text-4xl font-black text-ink sm:text-5xl">Secure digital lost-and-found</h1>
-              <p className="mt-3 max-w-3xl text-sm text-slate-600 sm:text-base">
-                Post lost or found items, search by category or description, match similar reports, and verify claims with a hidden question before return.
-              </p>
+              <p className="text-xs font-bold uppercase tracking-[0.35em] text-amber-600">LostLink</p>
+              <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">Lost & Found dashboard</h1>
             </div>
-            <div className="flex items-center gap-3">
-              {user ? (
-                <>
-                  <div className="rounded-2xl bg-slate-900 px-4 py-3 text-sm text-white">
-                    Signed in as <span className="font-semibold">{user.name}</span>
-                  </div>
-                  <button onClick={logout} className="rounded-2xl border border-slate-300 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100">
-                    Logout
-                  </button>
-                </>
-              ) : null}
+
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="rounded-2xl bg-slate-900 px-4 py-2.5 text-sm text-white shadow-sm">
+                Signed in as <span className="font-semibold">{user.name}</span>
+              </div>
+              <button
+                type="button"
+                onClick={logout}
+                className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-100"
+              >
+                Logout
+              </button>
             </div>
           </div>
-          <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900">{message}</div>
+
+          <div className="mt-4 rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            {message}
+          </div>
         </header>
 
-        <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
-          <aside className="space-y-6">
-            <section className="card">
-              <div className="mb-4 flex gap-2">
-                <button onClick={() => setAuthMode("login")} className={`rounded-xl px-3 py-2 text-sm font-semibold ${authMode === "login" ? "bg-ink text-white" : "bg-slate-100 text-slate-600"}`}>Login</button>
-                <button onClick={() => setAuthMode("register")} className={`rounded-xl px-3 py-2 text-sm font-semibold ${authMode === "register" ? "bg-ink text-white" : "bg-slate-100 text-slate-600"}`}>Register</button>
-              </div>
-              <form className="space-y-3" onSubmit={handleAuthSubmit}>
-                {authMode === "register" && (
-                  <input className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-gold" placeholder="Full name" value={authForm.name} onChange={(e) => setAuthForm((current) => ({ ...current, name: e.target.value }))} />
-                )}
-                <input className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-gold" placeholder="Email" type="email" value={authForm.email} onChange={(e) => setAuthForm((current) => ({ ...current, email: e.target.value }))} />
-                <input className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-gold" placeholder="Password" type="password" value={authForm.password} onChange={(e) => setAuthForm((current) => ({ ...current, password: e.target.value }))} />
-                <button disabled={loading} className="w-full rounded-2xl bg-gold px-4 py-3 font-semibold text-white transition hover:brightness-110 disabled:opacity-60">
-                  {authMode === "register" ? "Create account" : "Sign in"}
-                </button>
-              </form>
-            </section>
+        <main className="mt-8 space-y-6">
+          <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-soft sm:p-5">
+            <div className="grid gap-3 md:grid-cols-[1.6fr_1fr_1fr_1fr]">
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-amber-500"
+                placeholder="Search by title, description, location, item..."
+              />
+              <select
+                value={filters.type}
+                onChange={(event) => setFilters((current) => ({ ...current, type: event.target.value }))}
+                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 focus:border-amber-500"
+              >
+                <option value="">All types</option>
+                <option value="lost">Lost</option>
+                <option value="found">Found</option>
+              </select>
+              <select
+                value={filters.category}
+                onChange={(event) => setFilters((current) => ({ ...current, category: event.target.value }))}
+                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 focus:border-amber-500"
+              >
+                <option value="">All categories</option>
+                {categories.map((category) => (
+                  <option key={category} value={category}>{category}</option>
+                ))}
+              </select>
+              <select
+                value={filters.status}
+                onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value }))}
+                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 focus:border-amber-500"
+              >
+                <option value="">All statuses</option>
+                <option value="open">Open</option>
+                <option value="match_suggested">Match Suggested</option>
+                <option value="claim_pending">Claim Pending</option>
+                <option value="verified">Verified</option>
+                <option value="returned">Returned</option>
+                <option value="closed">Closed</option>
+              </select>
+            </div>
+          </section>
 
-            <section className="card">
-              <h2 className="text-lg font-bold text-ink">Report an item</h2>
-              <form className="mt-4 space-y-3" onSubmit={handleItemSubmit}>
-                <div className="grid grid-cols-2 gap-2 rounded-2xl bg-slate-100 p-2">
-                  {[
-                    ["lost", "Lost"],
-                    ["found", "Found"]
-                  ].map(([value, label]) => (
-                    <button key={value} type="button" onClick={() => setItemForm((current) => ({ ...current, type: value }))} className={`rounded-xl px-3 py-2 text-sm font-semibold ${itemForm.type === value ? "bg-ink text-white" : "text-slate-500"}`}>
-                      {label}
-                    </button>
-                  ))}
-                </div>
-                <input className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-gold" placeholder="Item title" value={itemForm.title} onChange={(e) => setItemForm((current) => ({ ...current, title: e.target.value }))} />
-                <select className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-gold" value={itemForm.category} onChange={(e) => setItemForm((current) => ({ ...current, category: e.target.value }))}>
-                  <option value="">Category</option>
-                  {categories.map((category) => <option key={category}>{category}</option>)}
-                </select>
-                <textarea className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-gold" rows="3" placeholder="Description" value={itemForm.description} onChange={(e) => setItemForm((current) => ({ ...current, description: e.target.value }))} />
-                <input className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-gold" placeholder="Location" value={itemForm.location} onChange={(e) => setItemForm((current) => ({ ...current, location: e.target.value }))} />
-                <input className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-gold" type="date" value={itemForm.eventDate} onChange={(e) => setItemForm((current) => ({ ...current, eventDate: e.target.value }))} />
-                <input className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-gold" placeholder="Optional image URL" value={itemForm.imageUrl} onChange={(e) => setItemForm((current) => ({ ...current, imageUrl: e.target.value }))} />
-                <input className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-gold" placeholder="Verification question" value={itemForm.verificationQuestion} onChange={(e) => setItemForm((current) => ({ ...current, verificationQuestion: e.target.value }))} />
-                <input className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-gold" placeholder="Hidden verification answer" value={itemForm.verificationAnswer} onChange={(e) => setItemForm((current) => ({ ...current, verificationAnswer: e.target.value }))} />
-                <button disabled={loading} className="w-full rounded-2xl bg-ink px-4 py-3 font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60">
-                  Submit report
-                </button>
-              </form>
-            </section>
-          </aside>
-
-          <main className="space-y-6">
-            <section className="card">
-              <div className="grid gap-3 md:grid-cols-[1.5fr_repeat(3,minmax(0,1fr))]">
-                <input className="rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-gold" placeholder="Search by title, description, location, category" value={search} onChange={(e) => setSearch(e.target.value)} />
-                <select className="rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-gold" value={filters.type} onChange={(e) => setFilters((current) => ({ ...current, type: e.target.value }))}>
-                  <option value="">All types</option>
-                  <option value="lost">Lost</option>
-                  <option value="found">Found</option>
-                </select>
-                <select className="rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-gold" value={filters.category} onChange={(e) => setFilters((current) => ({ ...current, category: e.target.value }))}>
-                  <option value="">All categories</option>
-                  {categories.map((category) => <option key={category}>{category}</option>)}
-                </select>
-                <select className="rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-gold" value={filters.status} onChange={(e) => setFilters((current) => ({ ...current, status: e.target.value }))}>
-                  <option value="">All statuses</option>
-                  <option value="open">Open</option>
-                  <option value="match_suggested">Match Suggested</option>
-                  <option value="claim_pending">Claim Pending</option>
-                  <option value="verified">Verified</option>
-                  <option value="returned">Returned</option>
-                  <option value="closed">Closed</option>
-                </select>
-              </div>
-            </section>
-
-            <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-              <div className="card">
-                <h2 className="text-lg font-bold text-ink">Recent posts</h2>
-                <div className="mt-4 grid gap-4 md:grid-cols-2">
-                  {items.map((item) => (
-                    <button key={item.id} onClick={() => setSelectedItem(item)} className={`text-left rounded-3xl border p-4 transition hover:-translate-y-1 ${selectedItem?.id === item.id ? "border-gold bg-amber-50" : "border-slate-200 bg-slate-50"}`}>
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-xs uppercase tracking-[0.3em] text-slate-500">{item.type}</p>
-                          <h3 className="mt-1 text-lg font-bold text-ink">{item.title}</h3>
-                        </div>
-                        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusBadge[item.status] || "bg-slate-100 text-slate-700"}`}>{item.status}</span>
-                      </div>
-                      <p className="mt-3 text-sm text-slate-600">{item.category} · {item.location}</p>
-                      <p className="mt-2 line-clamp-3 text-sm text-slate-600">{item.description}</p>
-                    </button>
-                  ))}
-                </div>
+          <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+            <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-soft sm:p-5">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <h2 className="text-xl font-bold text-slate-900">Recent posts</h2>
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">
+                  {items.length} items
+                </span>
               </div>
 
-              <div className="space-y-6">
-                <section className="card">
-                  <h2 className="text-lg font-bold text-ink">Selected item</h2>
-                  {selectedItem ? (
-                    <div className="mt-4 space-y-3 rounded-3xl bg-slate-50 p-4">
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <p className="text-xs uppercase tracking-[0.3em] text-slate-500">{selectedItem.type}</p>
-                          <h3 className="text-xl font-bold text-ink">{selectedItem.title}</h3>
-                        </div>
-                        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusBadge[selectedItem.status] || "bg-slate-100 text-slate-700"}`}>{selectedItem.status}</span>
-                      </div>
-                      <p className="text-sm text-slate-600">{selectedItem.category} · {selectedItem.location}</p>
-                      <p className="text-sm text-slate-700">{selectedItem.description}</p>
-                      <p className="text-sm text-slate-500">Verification question: {selectedItem.verificationQuestion}</p>
-                      <form className="mt-4 flex flex-col gap-3" onSubmit={handleClaimSubmit}>
-                        <input className="rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-gold" placeholder="Answer verification question" value={claimAnswer} onChange={(e) => setClaimAnswer(e.target.value)} />
-                        <button disabled={loading} className="rounded-2xl bg-coral px-4 py-3 font-semibold text-white transition hover:brightness-110 disabled:opacity-60">Submit claim</button>
-                      </form>
+              {isLoadingItems ? (
+                <div className="grid gap-4 md:grid-cols-2">
+                  {[1, 2, 3, 4].map((index) => (
+                    <div key={index} className="animate-pulse rounded-3xl border border-slate-200 bg-slate-100 p-4">
+                      <div className="h-36 rounded-2xl bg-slate-200" />
+                      <div className="mt-4 h-4 w-20 rounded bg-slate-200" />
+                      <div className="mt-3 h-6 w-3/4 rounded bg-slate-200" />
+                      <div className="mt-3 h-4 w-full rounded bg-slate-200" />
+                      <div className="mt-2 h-4 w-2/3 rounded bg-slate-200" />
                     </div>
-                  ) : (
-                    <p className="mt-4 text-sm text-slate-500">Select a report to review details and claim workflow.</p>
-                  )}
-                </section>
+                  ))}
+                </div>
+              ) : items.length ? (
+                <div className="grid gap-4 md:grid-cols-2">
+                  {items.map((item) => (
+                    <div
+                      key={item.id}
+                      onClick={() => setSelectedItem(item)}
+                      className={`cursor-pointer rounded-3xl border p-3 transition duration-200 hover:-translate-y-1 hover:shadow-soft ${selectedItem?.id === item.id ? "border-amber-300 bg-amber-50" : "border-slate-200 bg-slate-50 hover:border-slate-300"}`}
+                    >
+                      <div className="overflow-hidden rounded-2xl">
+                        <img
+                          src={item.imageUrl || fallbackImage}
+                          alt={item.title}
+                          className="h-40 w-full object-cover transition duration-200 hover:scale-[1.02]"
+                          onError={(event) => {
+                            event.currentTarget.src = fallbackImage;
+                          }}
+                        />
+                      </div>
 
-                <section className="card">
-                  <h2 className="text-lg font-bold text-ink">Possible matches</h2>
-                  <div className="mt-4 space-y-3">
-                    {matches.map((match) => (
-                      <div key={match.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                        <div className="flex items-start justify-between gap-4">
-                          <div>
-                            <h3 className="font-bold text-ink">{match.title}</h3>
-                            <p className="text-sm text-slate-600">{match.category} · {match.location}</p>
-                          </div>
-                          <div className="rounded-full bg-gold/10 px-3 py-1 text-xs font-semibold text-gold">{match.score}%</div>
+                      <div className="mt-4 flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-slate-500">{item.type}</p>
+                          <h3 className="mt-2 text-lg font-bold text-slate-900">{item.title}</h3>
                         </div>
-                        <p className="mt-2 text-sm text-slate-600">Reasons: {match.reasons.join(", ") || "category/title/location/date similarity"}</p>
+                        <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${statusBadge[item.status] || "bg-slate-200 text-slate-700"}`}>
+                          {item.status}
+                        </span>
+                      </div>
+
+                      <div className="mt-3 space-y-1 text-sm text-slate-600">
+                        <p>{item.category} · {item.location}</p>
+                        <p>{formatDate(item.eventDate || item.createdAt)}</p>
+                      </div>
+
+                      <p className="mt-3 line-clamp-3 text-sm text-slate-600">{item.description}</p>
+
+                      <div className="mt-4 flex items-center justify-between gap-3 border-t border-slate-200 pt-3">
+                        <span className="text-xs text-slate-500">Posted by {item.owner?.name || "Unknown"}</span>
+                        <button
+                          type="button"
+                          className="rounded-xl bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-700"
+                        >
+                          View details
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center">
+                  <p className="text-lg font-semibold text-slate-700">No posts match your filters</p>
+                  <p className="mt-2 text-sm text-slate-500">Try a different search or report a new item.</p>
+                </div>
+              )}
+            </section>
+
+            <div className="space-y-6">
+              <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-soft sm:p-5">
+                <h2 className="text-xl font-bold text-slate-900">Selected item</h2>
+
+                {selectedItem ? (
+                  <div className="mt-4 space-y-4 rounded-3xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="overflow-hidden rounded-2xl">
+                      <img
+                        src={selectedItem.imageUrl || fallbackImage}
+                        alt={selectedItem.title}
+                        className="h-56 w-full object-cover"
+                        onError={(event) => {
+                          event.currentTarget.src = fallbackImage;
+                        }}
+                      />
+                    </div>
+
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-slate-500">{selectedItem.type}</p>
+                        <h3 className="mt-2 text-2xl font-bold text-slate-900">{selectedItem.title}</h3>
+                      </div>
+                      <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${statusBadge[selectedItem.status] || "bg-slate-200 text-slate-700"}`}>
+                        {selectedItem.status}
+                      </span>
+                    </div>
+
+                    <div className="grid gap-2 text-sm text-slate-600 sm:grid-cols-2">
+                      <p><span className="font-semibold text-slate-900">Category:</span> {selectedItem.category}</p>
+                      <p><span className="font-semibold text-slate-900">Location:</span> {selectedItem.location}</p>
+                      <p><span className="font-semibold text-slate-900">Date:</span> {formatDate(selectedItem.eventDate || selectedItem.createdAt)}</p>
+                      <p><span className="font-semibold text-slate-900">Posted by:</span> {selectedItem.owner?.name || "Unknown"}</p>
+                    </div>
+
+                    <div className="rounded-2xl bg-white p-3 text-sm text-slate-700">
+                      {selectedItem.description}
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200 bg-white p-3 text-sm text-slate-700">
+                      <span className="font-semibold text-slate-900">Verification question:</span> {selectedItem.verificationQuestion}
+                    </div>
+
+                    <form onSubmit={handleClaimSubmit} className="space-y-3">
+                      <input
+                        value={claimAnswer}
+                        onChange={(event) => setClaimAnswer(event.target.value)}
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-amber-500"
+                        placeholder="Answer the verification question"
+                      />
+                      <button
+                        type="submit"
+                        disabled={isClaiming}
+                        className="w-full rounded-2xl bg-gradient-to-r from-orange-500 to-red-500 px-4 py-3 text-sm font-semibold text-white shadow-md transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
+                      >
+                        {isClaiming ? "Checking claim..." : "Submit claim"}
+                      </button>
+                    </form>
+                  </div>
+                ) : (
+                  <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-500">
+                    Select a report to view its full details and verification workflow.
+                  </div>
+                )}
+              </section>
+
+              <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-soft sm:p-5">
+                <h2 className="text-xl font-bold text-slate-900">Possible matches</h2>
+
+                {isLoadingMatches ? (
+                  <div className="mt-4 space-y-3">
+                    {[1, 2].map((index) => (
+                      <div key={index} className="animate-pulse rounded-2xl border border-slate-200 bg-slate-100 p-4">
+                        <div className="h-4 w-1/3 rounded bg-slate-200" />
+                        <div className="mt-2 h-4 w-2/3 rounded bg-slate-200" />
+                        <div className="mt-3 h-4 w-full rounded bg-slate-200" />
                       </div>
                     ))}
-                    {!matches.length && <p className="text-sm text-slate-500">No matches yet.</p>}
                   </div>
-                </section>
+                ) : matches.length ? (
+                  <div className="mt-4 space-y-3">
+                    {matches.map((match) => (
+                      <div key={match.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <h3 className="text-base font-bold text-slate-900">{match.title}</h3>
+                            <p className="mt-1 text-sm text-slate-600">{match.category} · {match.location}</p>
+                          </div>
+                          <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-amber-700">
+                            {match.score}%
+                          </span>
+                        </div>
+                        <p className="mt-3 text-sm text-slate-600">{match.reasons?.join(", ") || "Similar title, category, and location"}</p>
+                        <button type="button" onClick={() => setSelectedItem(match)} className="mt-3 inline-flex rounded-xl bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-700">
+                          View
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-500">
+                    No possible matches yet. Try posting a more descriptive item.
+                  </div>
+                )}
+              </section>
+            </div>
+          </div>
+
+          <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-soft">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-bold text-slate-900">Report an item</h2>
+                <p className="mt-1 text-sm text-slate-500">Submit a lost or found report with an image upload.</p>
               </div>
-            </section>
-          </main>
-        </div>
+            </div>
+
+            <form onSubmit={handleItemSubmit} className="mt-5 space-y-4">
+              <div className="grid gap-2 rounded-2xl bg-slate-100 p-2 sm:grid-cols-2">
+                {[
+                  ["lost", "Lost"],
+                  ["found", "Found"]
+                ].map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setItemForm((current) => ({ ...current, type: value }))}
+                    className={`rounded-xl px-3 py-2.5 text-sm font-semibold transition ${itemForm.type === value ? "bg-slate-900 text-white" : "text-slate-600 hover:text-slate-900"}`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <input
+                  value={itemForm.title}
+                  onChange={(event) => setItemForm((current) => ({ ...current, title: event.target.value }))}
+                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-amber-500"
+                  placeholder="Item title"
+                />
+                <select
+                  value={itemForm.category}
+                  onChange={(event) => setItemForm((current) => ({ ...current, category: event.target.value }))}
+                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 focus:border-amber-500"
+                >
+                  <option value="">Select category</option>
+                  {categories.map((category) => (
+                    <option key={category} value={category}>{category}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <input
+                  value={itemForm.location}
+                  onChange={(event) => setItemForm((current) => ({ ...current, location: event.target.value }))}
+                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-amber-500"
+                  placeholder="Location"
+                />
+                <input
+                  type="date"
+                  value={itemForm.eventDate}
+                  onChange={(event) => setItemForm((current) => ({ ...current, eventDate: event.target.value }))}
+                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 focus:border-amber-500"
+                />
+              </div>
+
+              <textarea
+                value={itemForm.description}
+                onChange={(event) => setItemForm((current) => ({ ...current, description: event.target.value }))}
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-amber-500"
+                rows="4"
+                placeholder="Tell us what happened, what it looks like, and any identifying details."
+              />
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <input
+                  value={itemForm.verificationQuestion}
+                  onChange={(event) => setItemForm((current) => ({ ...current, verificationQuestion: event.target.value }))}
+                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-amber-500"
+                  placeholder="Verification question"
+                />
+                <input
+                  value={itemForm.verificationAnswer}
+                  onChange={(event) => setItemForm((current) => ({ ...current, verificationAnswer: event.target.value }))}
+                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-amber-500"
+                  placeholder="Hidden verification answer"
+                />
+              </div>
+
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
+                <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-5 text-center text-sm text-slate-600 transition hover:border-amber-400 hover:text-slate-900">
+                  <span className="font-semibold text-slate-800">Upload item image</span>
+                  <span className="mt-1 text-xs text-slate-500">PNG, JPG, WEBP, or GIF up to 5MB</span>
+                  <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+                </label>
+
+                {imagePreview ? (
+                  <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                    <img src={imagePreview} alt="Preview" className="h-48 w-full object-cover" />
+                  </div>
+                ) : null}
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSubmittingItem}
+                className="w-full rounded-2xl bg-gradient-to-r from-slate-900 to-slate-700 px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {isSubmittingItem ? "Uploading report..." : "Submit report"}
+              </button>
+            </form>
+          </section>
+        </main>
       </div>
     </div>
   );

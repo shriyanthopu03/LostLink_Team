@@ -10,26 +10,30 @@ import claimRoutes from "./src/routes/claimRoutes.js";
 
 dotenv.config();
 
-// Debug: show working directory and whether MONGO_URI was loaded
-console.log("Server CWD:", process.cwd());
-console.log("MONGO_URI present:", Boolean(process.env.MONGO_URI));
-
 const app = express();
 const port = process.env.PORT || 5000;
 const clientUrl = process.env.CLIENT_URL?.replace(/\/$/, "");
+const allowedOrigins = new Set([
+  clientUrl,
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "https://lost-link-team-frontend.vercel.app",
+  "https://lost-link-team-backend.vercel.app"
+].filter(Boolean));
 
 app.use(helmet());
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || origin.replace(/\/$/, "") === clientUrl) {
+    if (!origin || allowedOrigins.has(origin.replace(/\/$/, ""))) {
       callback(null, true);
       return;
     }
-    callback(null, false);
+    callback(new Error("Origin not allowed by CORS"));
   },
   credentials: true
 }));
 app.use(express.json({ limit: "2mb" }));
+app.use(express.urlencoded({ extended: true }));
 app.use(morgan("dev"));
 
 app.get("/api/health", (_req, res) => {
@@ -52,7 +56,9 @@ app.use("/api/claims", claimRoutes);
 
 app.use((err, _req, res, _next) => {
   const status = err.status || 500;
-  res.status(status).json({ message: err.message || "Server error" });
+  const message = err.message || "Server error";
+  console.error("Unhandled server error:", message);
+  res.status(status).json({ message });
 });
 
 export default app;

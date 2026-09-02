@@ -10,6 +10,7 @@ const itemSchema = new mongoose.Schema(
     location: { type: String, required: true, trim: true },
     eventDate: { type: Date, required: true },
     imageUrl: { type: String, default: "" },
+    imagePublicId: { type: String, default: "" },
     verificationQuestion: { type: String, required: true, trim: true },
     verificationAnswerHash: { type: String, required: true },
     status: {
