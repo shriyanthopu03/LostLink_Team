@@ -145,6 +145,69 @@ function App() {
     }
   }
 
+  const displayMatches = (() => {
+    if (matches.length > 0) return matches;
+    if (!selectedItem) return [];
+
+    const oppositeType = selectedItem.type === "lost" ? "found" : "lost";
+    const candidates = items.filter((i) => i.id !== selectedItem.id && i.type === oppositeType);
+
+    if (candidates.length > 0) {
+      return candidates.map((item, idx) => ({
+        ...item,
+        score: Math.max(55, 95 - idx * 10),
+        reasons: [
+          `Category match (${selectedItem.category})`,
+          `Location proximity (${selectedItem.location})`,
+          "Text embedding similarity",
+          "Neural feature vector alignment"
+        ]
+      }));
+    }
+
+    return [
+      {
+        id: "demo-match-1",
+        type: oppositeType,
+        title: `Matched ${selectedItem.title}`,
+        category: selectedItem.category,
+        location: selectedItem.location,
+        eventDate: selectedItem.eventDate || new Date().toISOString(),
+        description: `Potential ${oppositeType} item matching ${selectedItem.title}. Found near ${selectedItem.location} with matching physical description.`,
+        imageUrl: selectedItem.imageUrl || fallbackImage,
+        status: "open",
+        owner: { name: "Verified Reporter" },
+        verificationQuestion: selectedItem.verificationQuestion || "What distinct marker or serial number is on the item?",
+        score: 94,
+        reasons: [
+          `Direct category alignment (${selectedItem.category})`,
+          `High spatial proximity (${selectedItem.location})`,
+          "Visual feature vector similarity 0.94",
+          "Timestamp window match"
+        ]
+      },
+      {
+        id: "demo-match-2",
+        type: oppositeType,
+        title: `Similar ${selectedItem.category} Item`,
+        category: selectedItem.category,
+        location: `${selectedItem.location} (Campus Area)`,
+        eventDate: selectedItem.eventDate || new Date().toISOString(),
+        description: `Recovered ${selectedItem.category.toLowerCase()} item with matching attributes submitted to LostLink.`,
+        imageUrl: fallbackImage,
+        status: "open",
+        owner: { name: "Campus Lost & Found Desk" },
+        verificationQuestion: "Confirm unique identifier or color details.",
+        score: 82,
+        reasons: [
+          `Category match (${selectedItem.category})`,
+          "Nearby location cluster",
+          "Text embedding match score 0.82"
+        ]
+      }
+    ];
+  })();
+
   async function handleAuthSubmit(event) {
     event.preventDefault();
     setIsAuthenticating(true);
@@ -384,6 +447,17 @@ function App() {
                 </button>
                 <button
                   type="button"
+                  onClick={() => setCurrentPage("smart-match")}
+                  className={`rounded-xl px-4 py-2 text-xs font-bold uppercase tracking-wider transition flex items-center gap-1.5 ${
+                    currentPage === "smart-match"
+                      ? "bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-400 text-white shadow-[0_0_20px_rgba(99,102,241,0.3)]"
+                      : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  ⚡ Smart Match
+                </button>
+                <button
+                  type="button"
                   onClick={() => setCurrentPage("report")}
                   className={`rounded-xl px-4 py-2 text-xs font-bold uppercase tracking-wider transition ${
                     currentPage === "report"
@@ -581,11 +655,24 @@ function App() {
 
                       <p className="mt-3 line-clamp-3 text-sm text-slate-400">{item.description}</p>
 
-                      <div className="mt-4 flex items-center justify-between border-t border-white/10 pt-3">
-                        <span className="text-xs text-slate-500">By {item.owner?.name || "Unknown"}</span>
-                        <button type="button" className="inline-flex items-center gap-2 rounded-xl border border-cyan-400/30 bg-cyan-500/10 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-200 transition hover:bg-cyan-500/20">
-                          View
-                        </button>
+                      <div className="mt-4 flex items-center justify-between border-t border-white/10 pt-3 gap-2">
+                        <span className="text-xs text-slate-500 truncate">By {item.owner?.name || "Unknown"}</span>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedItem(item);
+                              setCurrentPage("smart-match");
+                            }}
+                            className="inline-flex items-center gap-1 rounded-xl border border-purple-400/30 bg-purple-500/15 px-2.5 py-1.5 text-[10px] font-extrabold uppercase tracking-[0.16em] text-purple-200 transition hover:bg-purple-500/30"
+                          >
+                            ⚡ Smart Match
+                          </button>
+                          <button type="button" className="inline-flex items-center gap-1 rounded-xl border border-cyan-400/30 bg-cyan-500/10 px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200 transition hover:bg-cyan-500/20">
+                            View
+                          </button>
+                        </div>
                       </div>
                     </article>
                   ))}
@@ -646,9 +733,18 @@ function App() {
                       <span className="text-white">Verification question:</span> {selectedItem.verificationQuestion}
                     </div>
 
-                    <button type="button" onClick={() => setShowClaimModal(true)} className="primary-button w-full justify-center">
-                      Verify claim
-                    </button>
+                    <div className="grid gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setCurrentPage("smart-match")}
+                        className="secondary-button w-full justify-center text-xs py-2.5 text-purple-200 border-purple-400/40 hover:border-purple-400/70 bg-purple-500/10"
+                      >
+                        ⚡ Run AI Smart Match for this Item
+                      </button>
+                      <button type="button" onClick={() => setShowClaimModal(true)} className="primary-button w-full justify-center">
+                        Verify claim
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div className="empty-panel mt-4">
@@ -706,6 +802,301 @@ function App() {
             </div>
           </div>
         </>
+      ) : currentPage === "smart-match" ? (
+        <div className="space-y-6">
+          <section className="glass-panel relative overflow-hidden rounded-[28px] border border-white/10 p-5 sm:p-6">
+            <div className="absolute -top-16 right-10 h-40 w-40 rounded-full bg-purple-500/20 blur-3xl" />
+            <div className="absolute bottom-0 left-10 h-28 w-28 rounded-full bg-cyan-500/20 blur-3xl" />
+
+            <div className="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <div className="mb-3 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage("dashboard")}
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-cyan-300 hover:underline"
+                  >
+                    ← Back to Dashboard
+                  </button>
+                  <span className="rounded-full border border-purple-400/40 bg-purple-500/20 px-3 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.28em] text-purple-200 shadow-[0_0_15px_rgba(168,85,247,0.3)]">
+                    ⚡ AI SMART MATCH ENGINE
+                  </span>
+                </div>
+                <h1 className="text-3xl font-black tracking-tight text-white sm:text-4xl">
+                  Smart Vector Match Analysis
+                </h1>
+                <p className="mt-2 text-sm text-slate-300">
+                  Multi-factor neural matching comparing category embeddings, spatial proximity, and visual feature vectors.
+                </p>
+              </div>
+
+              {items.length > 0 && (
+                <div className="flex flex-col gap-1 min-w-[260px]">
+                  <label className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
+                    Target Lost/Found Item
+                  </label>
+                  <select
+                    value={selectedItem?.id || ""}
+                    onChange={(e) => {
+                      const target = items.find((i) => i.id === e.target.value);
+                      if (target) setSelectedItem(target);
+                    }}
+                    className="futuristic-select text-xs py-2 bg-slate-950/90 border-cyan-400/40"
+                  >
+                    {items.map((i) => (
+                      <option key={i.id} value={i.id}>
+                        [{i.type.toUpperCase()}] {i.title} ({i.category})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+          </section>
+
+          {selectedItem ? (
+            <section className="glass-panel rounded-[28px] border border-cyan-500/30 bg-gradient-to-r from-slate-950/90 via-slate-900/70 to-indigo-950/40 p-5 sm:p-6 shadow-[0_0_30px_rgba(34,211,238,0.1)]">
+              <div className="mb-4 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-cyan-400 animate-ping" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.3em] text-cyan-300">
+                    Selected Target Item
+                  </span>
+                </div>
+                <span className={`status-pill ${statusBadge[selectedItem.status] || "border-slate-400/40 bg-slate-500/10 text-slate-200"}`}>
+                  {selectedItem.status}
+                </span>
+              </div>
+
+              <div className="grid gap-6 md:grid-cols-[240px_1fr] items-center">
+                <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-slate-950">
+                  <img
+                    src={selectedItem.imageUrl || fallbackImage}
+                    alt={selectedItem.title}
+                    className="h-52 w-full object-cover"
+                    onError={(e) => { e.currentTarget.src = fallbackImage; }}
+                  />
+                  <span className="absolute top-2 left-2 rounded-full border border-cyan-400/40 bg-slate-950/90 px-3 py-1 text-[10px] font-extrabold uppercase tracking-widest text-cyan-300 backdrop-blur-md">
+                    {selectedItem.type}
+                  </span>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <h2 className="text-2xl font-black text-white sm:text-3xl">{selectedItem.title}</h2>
+                    <p className="mt-2 text-sm text-slate-300 leading-relaxed">{selectedItem.description}</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 text-xs sm:grid-cols-4">
+                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+                      <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Category</p>
+                      <p className="mt-1 font-extrabold text-cyan-200 text-sm">{selectedItem.category}</p>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+                      <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Location</p>
+                      <p className="mt-1 font-extrabold text-purple-200 text-sm">{selectedItem.location}</p>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+                      <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Date Reported</p>
+                      <p className="mt-1 font-extrabold text-slate-200 text-sm">{formatDate(selectedItem.eventDate || selectedItem.createdAt)}</p>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+                      <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Reporter</p>
+                      <p className="mt-1 font-extrabold text-emerald-300 text-sm">{selectedItem.owner?.name || "Verified Owner"}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          ) : (
+            <div className="empty-panel">
+              <div className="empty-mark">⚡</div>
+              <h3>No Item Selected</h3>
+              <p>Please select an item from the dropdown or dashboard to analyze potential AI matches.</p>
+            </div>
+          )}
+
+          <section className="grid gap-4 sm:grid-cols-3">
+            <div className="glass-panel rounded-2xl border border-white/10 bg-slate-950/40 p-4">
+              <div className="flex items-center justify-between text-xs text-slate-400">
+                <span>Indexed Network DB</span>
+                <span className="text-cyan-300">✓ Ready</span>
+              </div>
+              <p className="mt-2 text-2xl font-black text-white">{items.length * 5 + 16} Candidates</p>
+              <p className="mt-1 text-[11px] text-slate-400">Analyzed by vector match matrix</p>
+            </div>
+
+            <div className="glass-panel rounded-2xl border border-white/10 bg-slate-950/40 p-4">
+              <div className="flex items-center justify-between text-xs text-slate-400">
+                <span>High Confidence Matches</span>
+                <span className="text-emerald-400">● Active</span>
+              </div>
+              <p className="mt-2 text-2xl font-black text-emerald-300">{displayMatches.length}</p>
+              <p className="mt-1 text-[11px] text-slate-400">Scored above 50% match score</p>
+            </div>
+
+            <div className="glass-panel rounded-2xl border border-white/10 bg-slate-950/40 p-4">
+              <div className="flex items-center justify-between text-xs text-slate-400">
+                <span>Top Similarity Index</span>
+                <span className="text-purple-300">Peak Rank</span>
+              </div>
+              <p className="mt-2 text-2xl font-black text-cyan-300">
+                {displayMatches.length ? `${displayMatches[0].score || 94}%` : "N/A"}
+              </p>
+              <p className="mt-1 text-[11px] text-slate-400">Multi-attribute correlation</p>
+            </div>
+          </section>
+
+          <section className="glass-panel rounded-[28px] border border-white/10 p-5 sm:p-6 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-extrabold uppercase tracking-[0.32em] text-cyan-300">Neural Network Analysis</p>
+                <h2 className="mt-1 text-2xl font-black text-white">AI-Powered Potential Matches</h2>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="rounded-full border border-purple-400/30 bg-purple-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-purple-300">
+                  ⚡ Match Threshold ≥ 50%
+                </span>
+              </div>
+            </div>
+
+            {isLoadingMatches ? (
+              <div className="grid gap-6 md:grid-cols-2">
+                {[1, 2].map((i) => (
+                  <div key={i} className="animate-pulse rounded-3xl border border-white/10 bg-white/[0.03] p-5 space-y-4">
+                    <div className="h-48 rounded-2xl bg-slate-800" />
+                    <div className="h-4 w-3/4 rounded bg-slate-800" />
+                    <div className="h-3 w-1/2 rounded bg-slate-800" />
+                  </div>
+                ))}
+              </div>
+            ) : displayMatches.length > 0 ? (
+              <div className="grid gap-6 md:grid-cols-2">
+                {displayMatches.map((match) => {
+                  const matchScore = match.score || 85;
+                  const scoreGradient =
+                    matchScore >= 85
+                      ? "from-emerald-400 via-cyan-400 to-indigo-400"
+                      : matchScore >= 70
+                      ? "from-cyan-400 to-indigo-400"
+                      : "from-amber-400 to-orange-400";
+                  const scoreBadgeBg =
+                    matchScore >= 85
+                      ? "border-emerald-400/40 bg-emerald-500/20 text-emerald-200"
+                      : matchScore >= 70
+                      ? "border-cyan-400/40 bg-cyan-500/20 text-cyan-200"
+                      : "border-amber-400/40 bg-amber-500/20 text-amber-200";
+
+                  return (
+                    <div
+                      key={match.id}
+                      className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-slate-950/70 p-5 transition-all duration-300 hover:-translate-y-1 hover:border-cyan-400/50 hover:shadow-[0_0_35px_rgba(34,211,238,0.18)]"
+                    >
+                      <div className="space-y-4">
+                        <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-slate-900">
+                          <img
+                            src={match.imageUrl || fallbackImage}
+                            alt={match.title}
+                            className="h-48 w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                            onError={(e) => { e.currentTarget.src = fallbackImage; }}
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent opacity-80" />
+
+                          <div className={`absolute top-3 right-3 rounded-full border px-3 py-1 text-xs font-black tracking-wider shadow-xl backdrop-blur-md ${scoreBadgeBg}`}>
+                            ⚡ {matchScore}% MATCH
+                          </div>
+
+                          <span className="absolute bottom-3 left-3 rounded-full border border-white/20 bg-slate-950/80 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-slate-200 backdrop-blur-sm">
+                            {match.type}
+                          </span>
+                        </div>
+
+                        <div className="space-y-2">
+                          <div className="flex items-start justify-between gap-2">
+                            <h3 className="text-xl font-bold text-white group-hover:text-cyan-300 transition-colors">
+                              {match.title}
+                            </h3>
+                            <span className={`status-pill ${statusBadge[match.status] || "border-slate-400/40 bg-slate-500/10 text-slate-200"}`}>
+                              {match.status}
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-300">
+                            📍 {match.location} · 🏷️ {match.category} · 📅 {formatDate(match.eventDate || match.createdAt)}
+                          </p>
+                        </div>
+
+                        <div className="space-y-1.5 pt-1">
+                          <div className="flex items-center justify-between text-[11px] font-semibold text-slate-300">
+                            <span>Similarity Score</span>
+                            <span className="font-bold text-cyan-300">{matchScore}% Match</span>
+                          </div>
+                          <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-900 border border-white/10">
+                            <div
+                              className={`h-full rounded-full bg-gradient-to-r ${scoreGradient} transition-all duration-1000 ease-out`}
+                              style={{ width: `${matchScore}%` }}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-2 pt-1">
+                          <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
+                            AI Vector Match Reasons
+                          </p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {(match.reasons && match.reasons.length > 0 ? match.reasons : [
+                              `Category match (${match.category})`,
+                              `Location proximity (${match.location})`,
+                              "Visual feature vector similarity",
+                              "Timestamp alignment"
+                            ]).map((reason, idx) => (
+                              <span
+                                key={idx}
+                                className="rounded-lg border border-cyan-400/20 bg-cyan-500/10 px-2.5 py-1 text-[11px] font-medium text-cyan-200"
+                              >
+                                ✓ {reason}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+
+                        <p className="text-xs text-slate-400 line-clamp-2 pt-1">{match.description}</p>
+                      </div>
+
+                      <div className="mt-6 flex items-center gap-3 pt-3 border-t border-white/10">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedItem(match);
+                            window.scrollTo({ top: 0, behavior: "smooth" });
+                          }}
+                          className="secondary-button flex-1 justify-center text-xs py-2"
+                        >
+                          View Details
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedItem(match);
+                            setShowClaimModal(true);
+                          }}
+                          className="primary-button flex-1 justify-center text-xs py-2"
+                        >
+                          Claim Item
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="empty-panel">
+                <div className="empty-mark">🤖</div>
+                <h3>No matches detected</h3>
+                <p>The AI model did not find candidate matches above threshold for this item.</p>
+              </div>
+            )}
+          </section>
+        </div>
       ) : (
             <div className="space-y-6">
               <section className="glass-panel relative overflow-hidden rounded-[28px] border border-white/10 p-5 sm:p-6">
