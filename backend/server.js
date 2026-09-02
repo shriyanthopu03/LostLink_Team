@@ -36,8 +36,23 @@ app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan("dev"));
 
-app.get("/api/health", (_req, res) => {
-  res.json({ ok: true, service: "lostlink-backend" });
+app.get("/api/health", async (_req, res) => {
+  try {
+    await connectDB();
+    res.json({ ok: true, service: "lostlink-backend", database: "connected" });
+  } catch (error) {
+    res.status(503).json({ ok: false, service: "lostlink-backend", message: "Database unavailable" });
+  }
+});
+
+app.use(async (_req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    console.error("Mongo connection failed before route handling:", error.message);
+    return res.status(503).json({ message: "Database unavailable. Please try again later." });
+  }
 });
 
 app.use("/api/auth", authRoutes);
@@ -47,17 +62,22 @@ app.use("/api/claims", claimRoutes);
 app.use((err, _req, res, _next) => {
   const status = err.status || 500;
   const message = err.message || "Server error";
-  
-  // Handle MongoDB connection errors
-  if (message.includes("MongoDB") || message.includes("connection")) {
+
+  if (
+    message.includes("Mongo") ||
+    message.includes("mongo") ||
+    message.includes("MongoDB") ||
+    message.includes("connection") ||
+    message.includes("ECONNREFUSED") ||
+    message.includes("MONGO_URI")
+  ) {
     return res.status(503).json({ message: "Database unavailable. Please try again later." });
   }
-  
+
   console.error("Unhandled server error:", message);
   res.status(status).json({ message });
 });
 
-// Initialize database connection on startup
 connectDB()
   .then(() => {
     console.log("MongoDB connected successfully");

@@ -2,10 +2,12 @@ import express from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
+import authMiddleware from "../middleware/authMiddleware.js";
 
 const router = express.Router();
+const getJwtSecret = () => process.env.JWT_SECRET || "LostLink_2026_default_secret";
 
-const createToken = (userId) => jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: "7d" });
+const createToken = (userId) => jwt.sign({ userId, id: userId }, getJwtSecret(), { expiresIn: "7d" });
 
 router.post("/register", async (req, res, next) => {
   try {
@@ -59,8 +61,15 @@ router.post("/login", async (req, res, next) => {
   }
 });
 
-router.get("/me", async (req, res) => {
-  res.status(501).json({ message: "Use the bearer token to identify the current user" });
+router.get("/me", authMiddleware, async (req, res) => {
+  res.json({
+    user: {
+      id: req.user._id,
+      name: req.user.name,
+      email: req.user.email,
+      role: req.user.role
+    }
+  });
 });
 
 export default router;

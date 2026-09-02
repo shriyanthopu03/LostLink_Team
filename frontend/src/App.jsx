@@ -50,6 +50,7 @@ function App() {
   const [selectedImage, setSelectedImage] = useState(null);
   const [imagePreview, setImagePreview] = useState("");
   const [isDraggingImage, setIsDraggingImage] = useState(false);
+  const [reportInterface, setReportInterface] = useState("classic");
 
   const isAuthenticated = Boolean(user && token);
 
@@ -679,11 +680,61 @@ function App() {
                 <p className="text-[10px] font-semibold uppercase tracking-[0.32em] text-slate-400">Submit</p>
                 <h2 className="mt-2 text-2xl font-bold text-white">Report an item</h2>
               </div>
-              <div className="rounded-full border border-purple-400/30 bg-purple-500/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.24em] text-purple-200">
-                secure flow
+              <div className="flex items-center gap-2 rounded-full border border-white/10 bg-slate-950/50 p-1">
+                {[{ value: "classic", label: "Dashboard" }, { value: "focused", label: "Focused" }].map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setReportInterface(option.value)}
+                    className={`rounded-full px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] transition ${reportInterface === option.value ? "bg-purple-500/20 text-purple-200" : "text-slate-500 hover:text-slate-200"}`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
               </div>
             </div>
 
+            {reportInterface === "focused" ? (
+              <form onSubmit={handleItemSubmit} className="report-focus-form">
+                <div className="report-type-switch">
+                  {[{ value: "lost", label: "Lost" }, { value: "found", label: "Found" }].map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setItemForm((current) => ({ ...current, type: option.value }))}
+                      className={itemForm.type === option.value ? "active" : ""}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="report-focus-grid">
+                  <label><span>Title</span><input value={itemForm.title} onChange={(event) => setItemForm((current) => ({ ...current, title: event.target.value }))} placeholder="Enter item title" /></label>
+                  <label><span>Category</span><select value={itemForm.category} onChange={(event) => setItemForm((current) => ({ ...current, category: event.target.value }))}><option value="">Select category</option>{categories.map((category) => <option key={category} value={category}>{category}</option>)}</select></label>
+                  <label><span>Location</span><input value={itemForm.location} onChange={(event) => setItemForm((current) => ({ ...current, location: event.target.value }))} placeholder="Enter location" /></label>
+                  <label><span>Date</span><input type="date" value={itemForm.eventDate} onChange={(event) => setItemForm((current) => ({ ...current, eventDate: event.target.value }))} /></label>
+                </div>
+
+                <label className="report-focus-wide"><span>Description</span><textarea value={itemForm.description} onChange={(event) => setItemForm((current) => ({ ...current, description: event.target.value }))} rows="4" placeholder="Describe the item, identifying details, and where it was last seen." /></label>
+
+                <div className="report-focus-grid">
+                  <label><span>Verification question</span><input value={itemForm.verificationQuestion} onChange={(event) => setItemForm((current) => ({ ...current, verificationQuestion: event.target.value }))} placeholder="Ask something only the owner would know" /></label>
+                  <label><span>Verification answer</span><input value={itemForm.verificationAnswer} onChange={(event) => setItemForm((current) => ({ ...current, verificationAnswer: event.target.value }))} placeholder="Private answer" /></label>
+                </div>
+
+                <div className="report-focus-actions">
+                  <label className="report-focus-upload" htmlFor="focused-item-upload">
+                    <input id="focused-item-upload" type="file" accept="image/*" onChange={handleImageChange} />
+                    <span>+ Add photo</span>
+                    <small>{selectedImage?.name || "Optional - max 10 MB"}</small>
+                  </label>
+                  <button type="submit" disabled={isSubmittingItem} className="primary-button">
+                    {isSubmittingItem ? "Submitting report..." : "Submit report"}
+                  </button>
+                </div>
+              </form>
+            ) : (
             <form onSubmit={handleItemSubmit} className="space-y-5">
               <div className="grid gap-2 rounded-2xl border border-white/10 bg-white/[0.02] p-2 sm:grid-cols-2">
                 {[
@@ -812,6 +863,7 @@ function App() {
                 {isSubmittingItem ? "Submitting report..." : "Submit report"}
               </button>
             </form>
+            )}
           </section>
         </main>
       </div>
