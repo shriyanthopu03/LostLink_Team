@@ -51,6 +51,7 @@ function App() {
   const [imagePreview, setImagePreview] = useState("");
   const [isDraggingImage, setIsDraggingImage] = useState(false);
   const [reportInterface, setReportInterface] = useState("classic");
+  const [currentPage, setCurrentPage] = useState("dashboard");
 
   const isAuthenticated = Boolean(user && token);
 
@@ -205,6 +206,7 @@ function App() {
       setImagePreview("");
       setMessage("Report submitted successfully.");
       await loadItems();
+      setCurrentPage("dashboard");
     } catch (error) {
       setMessage(error.message || "Unable to submit item");
     } finally {
@@ -367,7 +369,32 @@ function App() {
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <nav className="flex items-center gap-1 rounded-2xl border border-white/10 bg-slate-950/60 p-1">
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage("dashboard")}
+                  className={`rounded-xl px-4 py-2 text-xs font-bold uppercase tracking-wider transition ${
+                    currentPage === "dashboard"
+                      ? "bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-400 text-white shadow-[0_0_20px_rgba(99,102,241,0.3)]"
+                      : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  Dashboard
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage("report")}
+                  className={`rounded-xl px-4 py-2 text-xs font-bold uppercase tracking-wider transition ${
+                    currentPage === "report"
+                      ? "bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-400 text-white shadow-[0_0_20px_rgba(99,102,241,0.3)]"
+                      : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  Report an Item
+                </button>
+              </nav>
+
               <div className="rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-slate-200">
                 Signed in as <span className="font-semibold text-white">{user.name}</span>
               </div>
@@ -377,7 +404,9 @@ function App() {
         </header>
 
         <main className="space-y-6">
-          <section className="glass-panel relative overflow-hidden rounded-[28px] border border-white/10 p-5 sm:p-6">
+          {currentPage === "dashboard" ? (
+            <>
+              <section className="glass-panel relative overflow-hidden rounded-[28px] border border-white/10 p-5 sm:p-6">
             <div className="absolute -top-16 right-10 h-40 w-40 rounded-full bg-purple-500/20 blur-3xl" />
             <div className="absolute bottom-0 left-10 h-28 w-28 rounded-full bg-cyan-500/20 blur-3xl" />
 
@@ -397,14 +426,17 @@ function App() {
                 <div className="mt-6 flex flex-wrap gap-3">
                   <button
                     type="button"
-                    onClick={() => document.getElementById("report-form")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                    onClick={() => setCurrentPage("report")}
                     className="primary-button"
                   >
                     Report an item
                   </button>
                   <button
                     type="button"
-                    onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                    onClick={() => {
+                      setCurrentPage("dashboard");
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
                     className="secondary-button"
                   >
                     Browse reports
@@ -673,8 +705,26 @@ function App() {
               </section>
             </div>
           </div>
+        </>
+      ) : (
+            <div className="space-y-6">
+              <section className="glass-panel relative overflow-hidden rounded-[28px] border border-white/10 p-5 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage("dashboard")}
+                      className="mb-3 inline-flex items-center gap-2 text-xs font-semibold text-cyan-300 hover:underline"
+                    >
+                      ← Back to Dashboard
+                    </button>
+                    <h1 className="text-3xl font-black tracking-tight text-white sm:text-4xl">Report an Item</h1>
+                    <p className="mt-2 text-sm text-slate-300">Submit details and photo to list a lost or found item on the network.</p>
+                  </div>
+                </div>
+              </section>
 
-          <section id="report-form" className="glass-panel rounded-[30px] border border-white/10 p-4 sm:p-5 lg:p-6">
+              <section id="report-form" className="glass-panel rounded-[30px] border border-white/10 p-4 sm:p-5 lg:p-6">
             <div className="mb-5 flex items-center justify-between gap-3">
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.32em] text-slate-400">Submit</p>
@@ -865,6 +915,8 @@ function App() {
             </form>
             )}
           </section>
+        </div>
+      )}
         </main>
       </div>
 
