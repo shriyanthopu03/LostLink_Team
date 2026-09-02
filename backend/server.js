@@ -12,17 +12,12 @@ dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 5000;
-const allowedOrigins = [
-  process.env.CLIENT_URL,
-  process.env.FRONTEND_URL,
-  "https://lost-link-team-frontend.vercel.app",
-  "http://localhost:5173"
-].filter(Boolean).map((origin) => origin.replace(/\/$/, ""));
+const clientUrl = process.env.CLIENT_URL?.replace(/\/$/, "");
 
 app.use(helmet());
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin.replace(/\/$/, ""))) {
+    if (!origin || origin.replace(/\/$/, "") === clientUrl) {
       callback(null, true);
       return;
     }
@@ -35,6 +30,16 @@ app.use(morgan("dev"));
 
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true, service: "lostlink-backend" });
+});
+
+app.use(async (_req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    console.error("Mongo connection failed:", error.message);
+    res.status(503).json({ message: "Database unavailable" });
+  }
 });
 
 app.use("/api/auth", authRoutes);
