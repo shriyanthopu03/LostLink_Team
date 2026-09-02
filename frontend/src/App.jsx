@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API_URL = import.meta.env.VITE_API_URL || "https://lost-link-team-backend.vercel.app/api";
 const fallbackImage = "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1200&q=80";
 
 const defaultForm = {
@@ -33,7 +33,6 @@ function App() {
     return stored ? JSON.parse(stored) : null;
   });
   const [authForm, setAuthForm] = useState({ name: "", email: "", password: "" });
-  const isAuthenticated = Boolean(user && token);
   const [itemForm, setItemForm] = useState(defaultForm);
   const [items, setItems] = useState([]);
   const [matches, setMatches] = useState([]);
@@ -50,14 +49,46 @@ function App() {
   const [selectedImage, setSelectedImage] = useState(null);
   const [imagePreview, setImagePreview] = useState("");
 
+  const isAuthenticated = Boolean(user && token);
+
   useEffect(() => {
-    if (user) {
-      loadItems();
+    if (!isAuthenticated) {
+      setItems([]);
+      setSelectedItem(null);
+      setMatches([]);
+      return;
     }
-  }, [user, search, filters]);
+
+    loadItems();
+  }, [isAuthenticated, search, filters, token]);
 
   useEffect(() => {
+    if (!isAuthenticated || !selectedItem) {
+      setMatches([]);
+      return;
+    }
 
+    loadMatches(selectedItem.id);
+  }, [selectedItem, isAuthenticated, token]);
+
+  useEffect(() => {
+    return () => {
+      if (imagePreview) {
+        URL.revokeObjectURL(imagePreview);
+      }
+    };
+  }, [imagePreview]);
+
+  async function request(path, options = {}) {
+    const response = await fetch(`${API_URL}${path}`, {
+      ...options,
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(options.headers || {})
+      }
+    });
+
+    const text = await response.text();
     const data = text ? JSON.parse(text) : {};
 
     if (!response.ok) {
@@ -68,187 +99,187 @@ function App() {
   }
 
   async function loadItems() {
-      if (!user) return;
+    if (!isAuthenticated) return;
 
-      setIsLoadingItems(true);
-      try {
-        const params = new URLSearchParams();
-        if (search) params.set("search", search);
-        if (filters.type) params.set("type", filters.type);
-        if (filters.category) params.set("category", filters.category);
-        if (filters.status) params.set("status", filters.status);
+    setIsLoadingItems(true);
+    try {
+      const params = new URLSearchParams();
+      if (search) params.set("search", search);
+      if (filters.type) params.set("type", filters.type);
+      if (filters.category) params.set("category", filters.category);
+      if (filters.status) params.set("status", filters.status);
 
-        const data = await request(`/items?${params.toString()}`, { method: "GET" });
-        setItems(data);
+      const data = await request(`/items?${params.toString()}`, { method: "GET" });
+      setItems(data);
 
-        if (data.length && (!selectedItem || !data.some((item) => item.id === selectedItem.id))) {
+      if (data.length) {
+        const currentItemStillExists = selectedItem && data.some((item) => item.id === selectedItem.id);
+        if (!currentItemStillExists) {
           setSelectedItem(data[0]);
         }
-
-        if (!data.length) {
-          setSelectedItem(null);
-        }
-      } catch (error) {
-        setMessage(error.message || "Unable to load recent posts.");
-      } finally {
-        setIsLoadingItems(false);
+      } else {
+        setSelectedItem(null);
       }
+    } catch (error) {
+      setMessage(error.message || "Unable to load recent posts.");
+    } finally {
+      setIsLoadingItems(false);
     }
+  }
 
   async function loadMatches(itemId) {
-      if (!itemId) return;
+    if (!itemId || !isAuthenticated) return;
 
-      setIsLoadingMatches(true);
-      try {
-        const data = await request(`/items/${itemId}/matches`, { method: "GET" });
-        setMatches(data);
-      } catch (error) {
-        setMessage(error.message || "Unable to load matches.");
-      } finally {
-        setIsLoadingMatches(false);
-      }
+    setIsLoadingMatches(true);
+    try {
+      const data = await request(`/items/${itemId}/matches`, { method: "GET" });
+      setMatches(data);
+    } catch (error) {
+      setMessage(error.message || "Unable to load matches.");
+    } finally {
+      setIsLoadingMatches(false);
     }
+  }
 
   async function handleAuthSubmit(event) {
-      event.preventDefault();
-      setIsAuthenticating(true);
-      try {
-        const path = authMode === "register" ? "/auth/register" : "/auth/login";
-        const payload = authMode === "register"
-          ? authForm
-          : { email: authForm.email, password: authForm.password };
+    event.preventDefault();
+    setIsAuthenticating(true);
+    try {
+      const path = authMode === "register" ? "/auth/register" : "/auth/login";
+      const payload = authMode === "register" ? authForm : { email: authForm.email, password: authForm.password };
 
-        const data = await request(path, {
-          method: "POST",
-          body: JSON.stringify(payload),
-          headers: { "Content-Type": "application/json" }
-        });
+      const data = await request(path, {
+        method: "POST",
+        body: JSON.stringify(payload),
+        headers: { "Content-Type": "application/json" }
+      });
 
-        setToken(data.token);
-        localStorage.setItem("lostlink-token", data.token);
-        localStorage.setItem("lostlink-user", JSON.stringify(data.user));
-        setUser(data.user);
-        setToken(data.token);
-        setAuthForm({ name: "", email: "", password: "" });
-        setAuthMode("login");
-        setMessage(`Welcome, ${data.user.name}`);
-      } catch (error) {
-        setMessage(error.message || "Authentication failed");
-      } finally {
-        setIsAuthenticating(false);
-      }
-    }
-
-  async function handleItemSubmit(event) {
-      event.preventDefault();
-      if (!token) {
-        setMessage("Please log in before posting an item.");
-        return;
-      }
-
-      setIsSubmittingItem(true);
-      try {
-        const formData = new FormData();
-        Object.entries(itemForm).forEach(([key, value]) => {
-          if (value) formData.append(key, value);
-        });
-
-        if (selectedImage) {
-          formData.append("image", selectedImage);
-        }
-
-        await fetch(`${API_URL}/items`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-          body: formData
-        }).then(async (response) => {
-          const result = await response.json().catch(() => ({}));
-          if (!response.ok) {
-            throw new Error(result.message || "Unable to submit item");
-          }
-          return result;
-        });
-
-        setItemForm(defaultForm);
-        setSelectedImage(null);
-        setImagePreview("");
-        setMessage("Report submitted successfully.");
-        await loadItems();
-      } catch (error) {
-        setMessage(error.message || "Unable to submit item");
-      } finally {
-        setIsSubmittingItem(false);
-      }
-    }
-
-  async function handleClaimSubmit(event) {
-      event.preventDefault();
-      if (!selectedItem) return;
-      if (!token) {
-        setMessage("Please log in before claiming an item.");
-        return;
-      }
-
-      setIsClaiming(true);
-      try {
-        const data = await request(`/claims/${selectedItem.id}`, {
-          method: "POST",
-          body: JSON.stringify({ answer: claimAnswer }),
-          headers: { "Content-Type": "application/json" }
-        });
-
-        setMessage(data.verified ? "Claim verified. Item can be returned." : "Claim failed verification.");
-        setClaimAnswer("");
-        await loadItems();
-        await loadMatches(selectedItem.id);
-      } catch (error) {
-        setMessage(error.message || "Unable to submit claim");
-      } finally {
-        setIsClaiming(false);
-      }
-    }
-
-  function handleImageChange(event) {
-      const file = event.target.files?.[0];
-      if (!file) {
-        setSelectedImage(null);
-        setImagePreview("");
-        return;
-      }
-
-      if (!file.type.startsWith("image/")) {
-        setMessage("Please choose a valid image file.");
-        return;
-      }
-
-      if (file.size > 5 * 1024 * 1024) {
-        setMessage("Image size must be 5MB or less.");
-        return;
-      }
-
-      const nextPreview = URL.createObjectURL(file);
-      if (imagePreview) URL.revokeObjectURL(imagePreview);
-      setSelectedImage(file);
-      setImagePreview(nextPreview);
-      setMessage("Image attached and ready to upload.");
-    }
-
-  function logout() {
-      localStorage.removeItem("lostlink-token");
-      localStorage.removeItem("lostlink-user");
-      setToken("");
-      setUser(null);
+      localStorage.setItem("lostlink-token", data.token);
+      localStorage.setItem("lostlink-user", JSON.stringify(data.user));
+      setToken(data.token);
+      setUser(data.user);
       setAuthForm({ name: "", email: "", password: "" });
       setAuthMode("login");
-      setSelectedItem(null);
-      setMatches([]);
-      setMessage("Logged out successfully. Please sign in again.");
+      setMessage(`Welcome, ${data.user.name}`);
+    } catch (error) {
+      setMessage(error.message || "Authentication failed");
+    } finally {
+      setIsAuthenticating(false);
+    }
+  }
+
+  async function handleItemSubmit(event) {
+    event.preventDefault();
+    if (!token) {
+      setMessage("Please log in before posting an item.");
+      return;
     }
 
-  function formatDate(value) {
-      if (!value) return "Unknown date";
-      return new Date(value).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+    setIsSubmittingItem(true);
+    try {
+      const formData = new FormData();
+      Object.entries(itemForm).forEach(([key, value]) => {
+        if (value) formData.append(key, value);
+      });
+
+      if (selectedImage) {
+        formData.append("image", selectedImage);
+      }
+
+      const response = await fetch(`${API_URL}/items`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData
+      });
+
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result.message || "Unable to submit item");
+      }
+
+      setItemForm(defaultForm);
+      setSelectedImage(null);
+      setImagePreview("");
+      setMessage("Report submitted successfully.");
+      await loadItems();
+    } catch (error) {
+      setMessage(error.message || "Unable to submit item");
+    } finally {
+      setIsSubmittingItem(false);
     }
+  }
+
+  async function handleClaimSubmit(event) {
+    event.preventDefault();
+    if (!selectedItem) return;
+    if (!token) {
+      setMessage("Please log in before claiming an item.");
+      return;
+    }
+
+    setIsClaiming(true);
+    try {
+      const data = await request(`/claims/${selectedItem.id}`, {
+        method: "POST",
+        body: JSON.stringify({ answer: claimAnswer }),
+        headers: { "Content-Type": "application/json" }
+      });
+
+      setMessage(data.verified ? "Claim verified. Item can be returned." : "Claim failed verification.");
+      setClaimAnswer("");
+      await loadItems();
+      await loadMatches(selectedItem.id);
+    } catch (error) {
+      setMessage(error.message || "Unable to submit claim");
+    } finally {
+      setIsClaiming(false);
+    }
+  }
+
+  function handleImageChange(event) {
+    const file = event.target.files?.[0];
+    if (!file) {
+      setSelectedImage(null);
+      setImagePreview("");
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      setMessage("Please choose a valid image file.");
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      setMessage("Image size must be 10MB or less.");
+      return;
+    }
+
+    const nextPreview = URL.createObjectURL(file);
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview);
+    }
+
+    setSelectedImage(file);
+    setImagePreview(nextPreview);
+    setMessage("Image attached and ready to upload.");
+  }
+
+  function logout() {
+    localStorage.removeItem("lostlink-token");
+    localStorage.removeItem("lostlink-user");
+    setToken("");
+    setUser(null);
+    setAuthForm({ name: "", email: "", password: "" });
+    setAuthMode("login");
+    setSelectedItem(null);
+    setMatches([]);
+    setMessage("Logged out successfully. Please sign in again.");
+  }
+
+  function formatDate(value) {
+    if (!value) return "Unknown date";
+    return new Date(value).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+  }
 
   if (!isAuthenticated) {
     return (
@@ -302,11 +333,7 @@ function App() {
                 className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-amber-500"
                 placeholder="Password"
               />
-              <button
-                type="submit"
-                disabled={isAuthenticating}
-                className="w-full btn-primary"
-              >
+              <button type="submit" disabled={isAuthenticating} className="w-full btn-primary">
                 {isAuthenticating ? "Please wait..." : authMode === "register" ? "Create account" : "Login"}
               </button>
             </form>
@@ -568,17 +595,14 @@ function App() {
 
             <form onSubmit={handleItemSubmit} className="mt-5 space-y-4">
               <div className="grid gap-2 rounded-2xl bg-slate-100 p-2 sm:grid-cols-2">
-                {[
-                  ["lost", "Lost"],
-                  ["found", "Found"]
-                ].map(([value, label]) => (
+                {["lost", "found"].map((value) => (
                   <button
                     key={value}
                     type="button"
                     onClick={() => setItemForm((current) => ({ ...current, type: value }))}
                     className={`rounded-xl px-3 py-2.5 text-sm font-semibold transition ${itemForm.type === value ? "bg-slate-900 text-white" : "text-slate-600 hover:text-slate-900"}`}
                   >
-                    {label}
+                    {value === "lost" ? "Lost" : "Found"}
                   </button>
                 ))}
               </div>
@@ -643,7 +667,7 @@ function App() {
               <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
                 <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-5 text-center text-sm text-slate-600 transition hover:border-amber-400 hover:text-slate-900">
                   <span className="font-semibold text-slate-800">Upload item image</span>
-                  <span className="mt-1 text-xs text-slate-500">PNG, JPG, WEBP, or GIF up to 5MB</span>
+                  <span className="mt-1 text-xs text-slate-500">PNG, JPG, WEBP, or GIF up to 10MB</span>
                   <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
                 </label>
 
