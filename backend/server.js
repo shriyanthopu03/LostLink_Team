@@ -40,16 +40,6 @@ app.get("/api/health", (_req, res) => {
   res.json({ ok: true, service: "lostlink-backend" });
 });
 
-app.use(async (_req, res, next) => {
-  try {
-    await connectDB();
-    next();
-  } catch (error) {
-    console.error("Mongo connection failed:", error.message);
-    res.status(503).json({ message: "Database unavailable" });
-  }
-});
-
 app.use("/api/auth", authRoutes);
 app.use("/api/items", itemRoutes);
 app.use("/api/claims", claimRoutes);
@@ -57,14 +47,20 @@ app.use("/api/claims", claimRoutes);
 app.use((err, _req, res, _next) => {
   const status = err.status || 500;
   const message = err.message || "Server error";
+  
+  // Handle MongoDB connection errors
+  if (message.includes("MongoDB") || message.includes("connection")) {
+    return res.status(503).json({ message: "Database unavailable. Please try again later." });
+  }
+  
   console.error("Unhandled server error:", message);
   res.status(status).json({ message });
 });
 
-export default app;
-
+// Initialize database connection on startup
 connectDB()
   .then(() => {
+    console.log("MongoDB connected successfully");
     if (process.env.NODE_ENV !== "production") {
       app.listen(port, () => {
         console.log(`LostLink API running on port ${port}`);
@@ -72,6 +68,9 @@ connectDB()
     }
   })
   .catch((error) => {
-    console.error("Mongo connection failed:", error.message);
+    console.error("Failed to connect to MongoDB:", error.message);
+    console.error("Please check your MONGO_URI environment variable");
     if (process.env.NODE_ENV !== "production") process.exit(1);
   });
+
+export default app;

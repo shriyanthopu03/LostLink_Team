@@ -12,7 +12,9 @@ const connectDB = async () => {
   if (mongoose.connection.readyState === 1) return;
 
   connectionPromise ??= mongoose.connect(mongoUri, {
-    serverSelectionTimeoutMS: 10000
+    serverSelectionTimeoutMS: 15000,
+    socketTimeoutMS: 45000,
+    family: 4  // Use IPv4 only (fixes Vercel deployment issues)
   });
 
   try {
