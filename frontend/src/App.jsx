@@ -353,467 +353,400 @@ function App() {
     <div className="dashboard-shell min-h-screen text-slate-100">
       <div className="grid-pattern" />
 
-      <div className="relative mx-auto max-w-7xl px-4 pb-12 pt-5 sm:px-6 lg:px-8">
-        <header className="glass-panel sticky top-4 z-20 mb-6 rounded-[28px] border border-white/10 px-4 py-4 backdrop-blur-xl sm:px-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-center gap-4">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-cyan-400 shadow-[0_0_30px_rgba(99,102,241,0.5)]">
-                <span className="text-sm font-black tracking-[0.2em] text-white">L</span>
-              </div>
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.38em] text-cyan-300">LostLink</p>
-                <p className="mt-1 text-sm text-slate-400">Find it. Return it.</p>
-              </div>
-            </div>
+      <div className="relative mx-auto max-w-[1400px] px-4 py-6">
+        <div className="dashboard-layout">
+          <aside className="sidebar-panel glass-panel">
+            <div className="sidebar-logo">L</div>
+            <nav className="sidebar-nav" aria-label="Sidebar navigation">
+              <button type="button" className="sidebar-button active" aria-label="Home">⌂</button>
+              <button type="button" className="sidebar-button" aria-label="Reports">▣</button>
+              <button type="button" className="sidebar-button" aria-label="Analytics">◫</button>
+              <button type="button" className="sidebar-button" aria-label="Tasks">☑</button>
+              <button type="button" className="sidebar-button" aria-label="Settings">⚙</button>
+            </nav>
+            <button type="button" onClick={logout} className="sidebar-logout">↩</button>
+          </aside>
 
-            <div className="flex items-center gap-3">
-              <div className="rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-slate-200">
-                Signed in as <span className="font-semibold text-white">{user.name}</span>
-              </div>
-              <button type="button" onClick={logout} className="nav-button">Logout</button>
-            </div>
-          </div>
-        </header>
-
-        <main className="space-y-6">
-          <section className="glass-panel relative overflow-hidden rounded-[28px] border border-white/10 p-5 sm:p-6">
-            <div className="absolute -top-16 right-10 h-40 w-40 rounded-full bg-purple-500/20 blur-3xl" />
-            <div className="absolute bottom-0 left-10 h-28 w-28 rounded-full bg-cyan-500/20 blur-3xl" />
-
-            <div className="relative grid gap-6 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
-              <div>
-                <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.32em] text-cyan-200">
-                  <span className="h-2 w-2 rounded-full bg-cyan-300" />
-                  Live network
-                </div>
-                <h1 className="text-3xl font-black tracking-tight text-white sm:text-4xl lg:text-5xl">
-                  Welcome back, <span className="bg-gradient-to-r from-cyan-300 via-indigo-300 to-purple-300 bg-clip-text text-transparent">{user.name}</span>
-                </h1>
-                <p className="mt-4 max-w-xl text-base text-slate-300">
-                  Reconnect lost belongings with their owners and keep each recovery flow moving in real time.
-                </p>
-
-                <div className="mt-6 flex flex-wrap gap-3">
-                  <button
-                    type="button"
-                    onClick={() => document.getElementById("report-form")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-                    className="primary-button"
-                  >
-                    Report an item
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-                    className="secondary-button"
-                  >
-                    Browse reports
-                  </button>
-                </div>
-              </div>
-
-              <div className="glass-panel rounded-[24px] border border-white/10 bg-slate-950/40 p-4">
-                <div className="flex items-center justify-between text-xs uppercase tracking-[0.28em] text-slate-400">
-                  <span>System status</span>
-                  <span className="rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2 py-1 text-[9px] text-emerald-300">Online</span>
-                </div>
-
-                <div className="mt-5 space-y-4">
-                  <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                    <p className="text-[10px] uppercase tracking-[0.28em] text-slate-400">Open reports</p>
-                    <p className="mt-2 text-3xl font-black text-white">{items.length}</p>
+          <main className="dashboard-content">
+            <div className="content-grid">
+              <div className="left-stack">
+                <section className="glass-panel dashboard-card hero-card">
+                  <div className="hero-header">
+                    <div>
+                      <p className="eyebrow">Good Evening,</p>
+                      <h1>{user.name}</h1>
+                    </div>
+                    <span className="time-badge">07:45 PM</span>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
-                      <p className="text-[10px] uppercase tracking-[0.28em] text-slate-400">Matches</p>
-                      <p className="mt-2 text-xl font-bold text-cyan-300">{matches.length}</p>
-                    </div>
-                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
-                      <p className="text-[10px] uppercase tracking-[0.28em] text-slate-400">Claims</p>
-                      <p className="mt-2 text-xl font-bold text-purple-300">{items.filter((item) => item.status === "claim_pending").length}</p>
-                    </div>
+
+                  <div className="hero-copy">
+                    <p>Stay focused and make it happen.</p>
                   </div>
-                </div>
-              </div>
-            </div>
-          </section>
 
-          <section className="glass-panel rounded-[26px] border border-white/10 p-4 sm:p-5">
-            <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
-              <div className="relative flex-1">
-                <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-cyan-300">◉</span>
-                <input
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  className="futuristic-input pl-10"
-                  placeholder="Search lost items, locations, descriptions..."
-                />
-              </div>
+                  <div className="chart-area" aria-hidden="true">
+                    <span className="chart-bar b1" />
+                    <span className="chart-bar b2" />
+                    <span className="chart-bar b3" />
+                    <span className="chart-bar b4" />
+                    <span className="chart-bar b5" />
+                    <span className="chart-bar b6" />
+                    <span className="chart-bar b7" />
+                    <span className="chart-bar b8" />
+                    <span className="chart-bar b9" />
+                    <span className="chart-bar b10" />
+                    <span className="chart-bar b11" />
+                    <span className="chart-bar b12" />
+                  </div>
+                </section>
 
-              <div className="grid gap-3 sm:grid-cols-3 xl:w-[46rem]">
-                <select
-                  value={filters.type}
-                  onChange={(event) => setFilters((current) => ({ ...current, type: event.target.value }))}
-                  className="futuristic-select"
-                >
-                  <option value="">All types</option>
-                  <option value="lost">Lost</option>
-                  <option value="found">Found</option>
-                </select>
-
-                <select
-                  value={filters.category}
-                  onChange={(event) => setFilters((current) => ({ ...current, category: event.target.value }))}
-                  className="futuristic-select"
-                >
-                  <option value="">All categories</option>
-                  {categories.map((category) => (
-                    <option key={category} value={category}>{category}</option>
-                  ))}
-                </select>
-
-                <select
-                  value={filters.status}
-                  onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value }))}
-                  className="futuristic-select"
-                >
-                  <option value="">All statuses</option>
-                  <option value="open">Open</option>
-                  <option value="match_suggested">Match Suggested</option>
-                  <option value="claim_pending">Claim Pending</option>
-                  <option value="verified">Verified</option>
-                  <option value="returned">Returned</option>
-                  <option value="closed">Closed</option>
-                </select>
-              </div>
-            </div>
-          </section>
-
-          <div className="grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
-            <section className="glass-panel rounded-[28px] border border-white/10 p-4 sm:p-5">
-              <div className="mb-5 flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.32em] text-slate-400">Feed</p>
-                  <h2 className="mt-2 text-2xl font-bold text-white">Recent posts</h2>
-                </div>
-                <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-300">
-                  {items.length} items
-                </span>
-              </div>
-
-              {isLoadingItems ? (
-                <div className="grid gap-4 md:grid-cols-2">
-                  {[1, 2, 3, 4].map((index) => (
-                    <div key={index} className="animate-pulse rounded-3xl border border-white/10 bg-white/[0.03] p-3">
-                      <div className="h-44 rounded-2xl bg-slate-700/80" />
-                      <div className="mt-4 h-3 w-20 rounded-full bg-slate-700/80" />
-                      <div className="mt-3 h-5 w-3/4 rounded-full bg-slate-700/80" />
-                      <div className="mt-3 h-3 w-full rounded-full bg-slate-700/80" />
-                      <div className="mt-2 h-3 w-2/3 rounded-full bg-slate-700/80" />
+                <div className="stats-row">
+                  <section className="glass-panel dashboard-card product-card">
+                    <div className="card-topline">
+                      <h3>Productivity</h3>
+                      <span>Today</span>
                     </div>
-                  ))}
-                </div>
-              ) : items.length ? (
-                <div className="grid gap-4 md:grid-cols-2">
-                  {items.map((item) => (
-                    <article
-                      key={item.id}
-                      className={`group cursor-pointer overflow-hidden rounded-3xl border p-3 transition-all duration-300 hover:-translate-y-1 hover:border-cyan-400/40 hover:shadow-[0_0_30px_rgba(34,211,238,0.18)] ${selectedItem?.id === item.id ? "border-cyan-400/40 bg-cyan-500/5" : "border-white/10 bg-white/[0.02]"}`}
-                      onClick={() => setSelectedItem(item)}
-                    >
-                      <div className="overflow-hidden rounded-2xl">
-                        <img
-                          src={item.imageUrl || fallbackImage}
-                          alt={item.title}
-                          className="h-44 w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                          onError={(event) => {
-                            event.currentTarget.src = fallbackImage;
-                          }}
-                        />
-                      </div>
 
-                      <div className="mt-4 flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-slate-400">{item.type}</p>
-                          <h3 className="mt-2 text-xl font-bold text-white">{item.title}</h3>
+                    <div className="product-body">
+                      <div className="product-stats">
+                        <span className="big-number">78%</span>
+                        <p>Great Progress!</p>
+                        <div className="mini-metrics">
+                          <div>
+                            <span>Tasks Completed</span>
+                            <strong>14</strong>
+                          </div>
+                          <div>
+                            <span>Total Tasks</span>
+                            <strong>18</strong>
+                          </div>
                         </div>
-                        <span className={`status-pill ${statusBadge[item.status] || "border-slate-400/40 bg-slate-500/10 text-slate-200"}`}>
-                          {item.status}
-                        </span>
                       </div>
 
-                      <div className="mt-3 space-y-1 text-sm text-slate-300">
+                      <div className="ring-wrap">
+                        <div className="progress-ring">
+                          <div className="ring-inner">
+                            <span>78%</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section className="glass-panel dashboard-card focus-card">
+                    <div className="card-topline">
+                      <h3>Focus Timer</h3>
+                    </div>
+                    <div className="focus-ring-wrap">
+                      <div className="focus-ring">
+                        <div className="focus-inner">
+                          <span>25:00</span>
+                          <small>Deep Work</small>
+                        </div>
+                      </div>
+                    </div>
+                    <button type="button" className="focus-button">Start</button>
+                  </section>
+                </div>
+
+                <section className="glass-panel dashboard-card tasks-card">
+                  <div className="card-topline">
+                    <h3>Tasks</h3>
+                    <button type="button" className="plus-button">+</button>
+                  </div>
+
+                  <ul className="task-list">
+                    <li>
+                      <div className="task-item done">
+                        <span className="task-check">✓</span>
+                        <span>UI/UX Research</span>
+                      </div>
+                      <span className="task-status done">Completed</span>
+                    </li>
+                    <li>
+                      <div className="task-item done">
+                        <span className="task-check">✓</span>
+                        <span>Design Dashboard</span>
+                      </div>
+                      <span className="task-status done">Completed</span>
+                    </li>
+                    <li>
+                      <div className="task-item">
+                        <span className="task-check empty">○</span>
+                        <span>Prototype App</span>
+                      </div>
+                      <span className="task-status progress">In Progress</span>
+                    </li>
+                    <li>
+                      <div className="task-item">
+                        <span className="task-check empty">○</span>
+                        <span>User Testing</span>
+                      </div>
+                      <span className="task-status pending">Pending</span>
+                    </li>
+                  </ul>
+                </section>
+
+                <div className="lower-row">
+                  <section className="glass-panel dashboard-card activity-card">
+                    <div className="card-topline">
+                      <h3>Weekly Activity</h3>
+                      <span>This Week</span>
+                    </div>
+
+                    <div className="activity-graph">
+                      <div className="bar b1" /><div className="bar b2" /><div className="bar b3" /><div className="bar b4" /><div className="bar b5" /><div className="bar b6" /><div className="bar b7" />
+                    </div>
+                    <div className="week-days">
+                      <span>Mon</span>
+                      <span>Tue</span>
+                      <span>Wed</span>
+                      <span>Thu</span>
+                      <span>Fri</span>
+                      <span>Sat</span>
+                      <span>Sun</span>
+                    </div>
+                  </section>
+
+                  <section className="glass-panel dashboard-card shortcuts-card">
+                    <div className="card-topline">
+                      <h3>Shortcuts</h3>
+                    </div>
+                    <div className="shortcut-grid">
+                      <div className="shortcut-item"><span>✎</span><small>Notes</small></div>
+                      <div className="shortcut-item"><span>▣</span><small>Files</small></div>
+                      <div className="shortcut-item"><span>♫</span><small>Music</small></div>
+                      <div className="shortcut-item"><span>◫</span><small>Calendar</small></div>
+                      <div className="shortcut-item"><span>◉</span><small>Camera</small></div>
+                      <div className="shortcut-item"><span>☰</span><small>Slack</small></div>
+                    </div>
+                  </section>
+                </div>
+              </div>
+
+              <div className="right-stack">
+                <section className="glass-panel dashboard-card weather-card">
+                  <div className="card-topline">
+                    <h3>May 24, 2025</h3>
+                    <span>Saturday</span>
+                  </div>
+
+                  <div className="weather-body">
+                    <div className="weather-icon">☼</div>
+                    <div className="weather-temp">27°</div>
+                  </div>
+
+                  <p className="weather-label">Cloudy</p>
+                  <p className="weather-range">H: 31°  L: 21°</p>
+                </section>
+
+                <section className="glass-panel dashboard-card mood-card">
+                  <div className="card-topline">
+                    <h3>Current Mood</h3>
+                  </div>
+                  <div className="mood-title">Focused</div>
+                  <div className="mood-chart" aria-hidden="true">
+                    <span className="mood-line" />
+                  </div>
+                  <div className="mood-label">Distractions</div>
+                  <div className="mood-level">Low</div>
+                </section>
+
+                <section className="glass-panel dashboard-card list-card">
+                  <div className="card-topline">
+                    <h3>Upcoming Events</h3>
+                    <button type="button" className="text-button">View All</button>
+                  </div>
+
+                  <ul className="event-list">
+                    <li>
+                      <div className="event-date">25</div>
+                      <div className="event-meta">
+                        <strong>Project Meeting</strong>
+                        <span>10:00 AM - 11:00 AM</span>
+                      </div>
+                      <span className="dot dot-blue" />
+                    </li>
+                    <li>
+                      <div className="event-date">26</div>
+                      <div className="event-meta">
+                        <strong>Design Review</strong>
+                        <span>02:00 PM - 03:30 PM</span>
+                      </div>
+                      <span className="dot dot-orange" />
+                    </li>
+                    <li>
+                      <div className="event-date">28</div>
+                      <div className="event-meta">
+                        <strong>Client Call</strong>
+                        <span>11:00 AM - 12:00 PM</span>
+                      </div>
+                      <span className="dot dot-green" />
+                    </li>
+                  </ul>
+                </section>
+
+                <section className="glass-panel dashboard-card status-card">
+                  <div className="card-topline">
+                    <h3>System Status</h3>
+                  </div>
+
+                  <div className="system-ring-wrap">
+                    <div className="system-ring">
+                      <div className="system-inner">
+                        <span>92%</span>
+                        <small>Optimal</small>
+                      </div>
+                    </div>
+                  </div>
+
+                  <ul className="status-list">
+                    <li><span>Storage</span><div className="status-meter"><i style={{ width: "78%" }} /></div><strong>78%</strong></li>
+                    <li><span>Battery</span><div className="status-meter"><i style={{ width: "82%" }} /></div><strong>82%</strong></li>
+                    <li><span>Network</span><div className="status-meter"><i style={{ width: "94%" }} /></div><strong>94%</strong></li>
+                  </ul>
+                </section>
+              </div>
+            </div>
+
+            <section className="glass-panel dashboard-card feed-card">
+              <div className="card-topline feed-head">
+                <div>
+                  <p className="eyebrow">Recent</p>
+                  <h3>Lost & Found Feed</h3>
+                </div>
+                <span className="live-badge">{items.length} active</span>
+              </div>
+
+              <div className="feed-grid">
+                {isLoadingItems ? (
+                  <div className="feed-loading">Loading recent reports...</div>
+                ) : items.length ? (
+                  items.slice(0, 4).map((item) => (
+                    <article key={item.id} className="feed-item" onClick={() => setSelectedItem(item)}>
+                      <img src={item.imageUrl || fallbackImage} alt={item.title} onError={(event) => { event.currentTarget.src = fallbackImage; }} />
+                      <div className="feed-item-info">
+                        <div className="feed-item-top">
+                          <span className="feed-type">{item.type}</span>
+                          <span className={`status-pill ${statusBadge[item.status] || "border-slate-400/40 bg-slate-500/10 text-slate-200"}`}>{item.status}</span>
+                        </div>
+                        <h4>{item.title}</h4>
                         <p>{item.category} · {item.location}</p>
-                        <p>{formatDate(item.eventDate || item.createdAt)}</p>
-                      </div>
-
-                      <p className="mt-3 line-clamp-3 text-sm text-slate-400">{item.description}</p>
-
-                      <div className="mt-4 flex items-center justify-between border-t border-white/10 pt-3">
-                        <span className="text-xs text-slate-500">By {item.owner?.name || "Unknown"}</span>
-                        <button type="button" className="inline-flex items-center gap-2 rounded-xl border border-cyan-400/30 bg-cyan-500/10 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-200 transition hover:bg-cyan-500/20">
-                          View
-                        </button>
                       </div>
                     </article>
-                  ))}
-                </div>
-              ) : (
-                <div className="empty-panel">
-                  <div className="empty-mark">◇</div>
-                  <h3>No reports found</h3>
-                  <p>Try changing your filters or report a new item.</p>
-                </div>
-              )}
+                  ))
+                ) : (
+                  <div className="empty-panel">
+                    <div className="empty-mark">◇</div>
+                    <h3>No reports found</h3>
+                    <p>Try changing your filters or report a new item.</p>
+                  </div>
+                )}
+              </div>
             </section>
 
-            <div className="space-y-6">
-              <section className="glass-panel rounded-[28px] border border-white/10 p-4 sm:p-5">
-                <div className="mb-4 flex items-center justify-between">
-                  <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.32em] text-slate-400">Details</p>
-                    <h2 className="mt-2 text-2xl font-bold text-white">Selected item</h2>
-                  </div>
+            <section id="report-form" className="glass-panel dashboard-card form-card">
+              <div className="card-topline form-head">
+                <div>
+                  <p className="eyebrow">Submit</p>
+                  <h3>Report an item</h3>
                 </div>
+                <div className="secure-pill">Secure Flow</div>
+              </div>
 
-                {selectedItem ? (
-                  <div className="space-y-4 rounded-3xl border border-white/10 bg-slate-950/40 p-4">
-                    <div className="overflow-hidden rounded-2xl">
-                      <img
-                        src={selectedItem.imageUrl || fallbackImage}
-                        alt={selectedItem.title}
-                        className="h-56 w-full object-cover"
-                        onError={(event) => {
-                          event.currentTarget.src = fallbackImage;
-                        }}
-                      />
-                    </div>
-
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-slate-400">{selectedItem.type}</p>
-                        <h3 className="mt-2 text-2xl font-bold text-white">{selectedItem.title}</h3>
-                      </div>
-                      <span className={`status-pill ${statusBadge[selectedItem.status] || "border-slate-400/40 bg-slate-500/10 text-slate-200"}`}>
-                        {selectedItem.status}
-                      </span>
-                    </div>
-
-                    <div className="grid gap-3 text-sm text-slate-300 sm:grid-cols-2">
-                      <p><span className="text-white">Category:</span> {selectedItem.category}</p>
-                      <p><span className="text-white">Location:</span> {selectedItem.location}</p>
-                      <p><span className="text-white">Date:</span> {formatDate(selectedItem.eventDate || selectedItem.createdAt)}</p>
-                      <p><span className="text-white">Owner:</span> {selectedItem.owner?.name || "Unknown"}</p>
-                    </div>
-
-                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3 text-sm text-slate-300">
-                      {selectedItem.description}
-                    </div>
-
-                    <div className="rounded-2xl border border-dashed border-cyan-400/30 bg-cyan-500/5 p-3 text-sm text-slate-300">
-                      <span className="text-white">Verification question:</span> {selectedItem.verificationQuestion}
-                    </div>
-
-                    <button type="button" onClick={() => setShowClaimModal(true)} className="primary-button w-full justify-center">
-                      Verify claim
+              <form onSubmit={handleItemSubmit} className="report-form">
+                <div className="segmented-control">
+                  {[
+                    { value: "lost", label: "Lost" },
+                    { value: "found", label: "Found" }
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setItemForm((current) => ({ ...current, type: option.value }))}
+                      className={itemForm.type === option.value ? "segmented-active" : ""}
+                    >
+                      {option.label}
                     </button>
-                  </div>
-                ) : (
-                  <div className="empty-panel mt-4">
-                    <div className="empty-mark">◇</div>
-                    <h3>Select a report</h3>
-                    <p>Choose an item to view its details and claim information.</p>
-                  </div>
-                )}
-              </section>
-
-              <section className="glass-panel rounded-[28px] border border-white/10 p-4 sm:p-5">
-                <div className="mb-4">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.32em] text-slate-400">AI matching</p>
-                  <h2 className="mt-2 text-2xl font-bold text-white">Possible matches</h2>
+                  ))}
                 </div>
 
-                {isLoadingMatches ? (
-                  <div className="space-y-3">
-                    {[1, 2].map((index) => (
-                      <div key={index} className="animate-pulse rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                        <div className="h-4 w-1/3 rounded-full bg-slate-700/80" />
-                        <div className="mt-3 h-4 w-2/3 rounded-full bg-slate-700/80" />
-                        <div className="mt-3 h-3 w-full rounded-full bg-slate-700/80" />
-                      </div>
-                    ))}
+                <div className="grid-2">
+                  <div className="field-group">
+                    <label>Title</label>
+                    <input value={itemForm.title} onChange={(event) => setItemForm((current) => ({ ...current, title: event.target.value }))} className="futuristic-input" placeholder="Enter item title" />
                   </div>
-                ) : matches.length ? (
-                  <div className="space-y-3">
-                    {matches.map((match) => (
-                      <div key={match.id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <h3 className="text-base font-bold text-white">{match.title}</h3>
-                            <p className="mt-1 text-sm text-slate-300">{match.category} · {match.location}</p>
-                          </div>
-                          <span className="rounded-full border border-cyan-400/30 bg-cyan-500/10 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.2em] text-cyan-200">
-                            {match.score || 0}%
-                          </span>
+
+                  <div className="field-group">
+                    <label>Category</label>
+                    <select value={itemForm.category} onChange={(event) => setItemForm((current) => ({ ...current, category: event.target.value }))} className="futuristic-select">
+                      <option value="">Select category</option>
+                      {categories.map((category) => (
+                        <option key={category} value={category}>{category}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid-2">
+                  <div className="field-group">
+                    <label>Location</label>
+                    <input value={itemForm.location} onChange={(event) => setItemForm((current) => ({ ...current, location: event.target.value }))} className="futuristic-input" placeholder="Enter location" />
+                  </div>
+
+                  <div className="field-group">
+                    <label>Date</label>
+                    <input type="date" value={itemForm.eventDate} onChange={(event) => setItemForm((current) => ({ ...current, eventDate: event.target.value }))} className="futuristic-input" />
+                  </div>
+                </div>
+
+                <div className="field-group">
+                  <label>Description</label>
+                  <textarea value={itemForm.description} onChange={(event) => setItemForm((current) => ({ ...current, description: event.target.value }))} rows="4" className="futuristic-input min-h-[120px] resize-none" placeholder="Describe the item and where it was last seen." />
+                </div>
+
+                <div className="grid-2">
+                  <div className="field-group">
+                    <label>Verification question</label>
+                    <input value={itemForm.verificationQuestion} onChange={(event) => setItemForm((current) => ({ ...current, verificationQuestion: event.target.value }))} className="futuristic-input" placeholder="Ask something only the owner would know" />
+                  </div>
+                  <div className="field-group">
+                    <label>Verification answer</label>
+                    <input value={itemForm.verificationAnswer} onChange={(event) => setItemForm((current) => ({ ...current, verificationAnswer: event.target.value }))} className="futuristic-input" placeholder="Private answer" />
+                  </div>
+                </div>
+
+                <div className="media-row">
+                  <div className="upload-panel" onDragOver={(event) => { event.preventDefault(); setIsDraggingImage(true); }} onDragLeave={() => setIsDraggingImage(false)} onDrop={(event) => { event.preventDefault(); setIsDraggingImage(false); const file = event.dataTransfer.files?.[0]; if (file) handleImageChange({ target: { files: [file] } }); }}>
+                    <input id="item-upload" type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+                    <label htmlFor="item-upload" className="upload-label">
+                      <span className="upload-icon">↑</span>
+                      <span className="upload-title">Upload image</span>
+                      <small>PNG / JPG / JPEG / GIF</small>
+                    </label>
+                  </div>
+
+                  <div className="preview-card">
+                    {imagePreview ? (
+                      <>
+                        <img src={imagePreview} alt="Preview" />
+                        <div className="preview-meta">
+                          <span>{selectedImage?.name || "image"}</span>
+                          <button type="button" onClick={() => { setSelectedImage(null); setImagePreview(""); }}>Remove</button>
                         </div>
-                        <p className="mt-3 text-sm text-slate-400">{match.reasons?.join(", ") || "Similar title, category, and location"}</p>
-                        <button type="button" onClick={() => setSelectedItem(match)} className="mt-3 inline-flex rounded-xl border border-white/10 bg-slate-900 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-200 hover:border-white/20">
-                          View
-                        </button>
-                      </div>
-                    ))}
+                      </>
+                    ) : (
+                      <div className="empty-preview">No image selected yet.</div>
+                    )}
                   </div>
-                ) : (
-                  <div className="empty-panel mt-4">
-                    <div className="empty-mark">◇</div>
-                    <h3>No matches yet</h3>
-                    <p>Similar reports will appear here when detected.</p>
-                  </div>
-                )}
-              </section>
-            </div>
-          </div>
-
-          <section id="report-form" className="glass-panel rounded-[30px] border border-white/10 p-4 sm:p-5 lg:p-6">
-            <div className="mb-5 flex items-center justify-between gap-3">
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.32em] text-slate-400">Submit</p>
-                <h2 className="mt-2 text-2xl font-bold text-white">Report an item</h2>
-              </div>
-              <div className="rounded-full border border-purple-400/30 bg-purple-500/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.24em] text-purple-200">
-                secure flow
-              </div>
-            </div>
-
-            <form onSubmit={handleItemSubmit} className="space-y-5">
-              <div className="grid gap-2 rounded-2xl border border-white/10 bg-white/[0.02] p-2 sm:grid-cols-2">
-                {[
-                  { value: "lost", label: "Lost" },
-                  { value: "found", label: "Found" }
-                ].map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => setItemForm((current) => ({ ...current, type: option.value }))}
-                    className={`rounded-xl px-3 py-2.5 text-sm font-semibold transition ${itemForm.type === option.value ? "bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-400 text-white shadow-[0_0_20px_rgba(99,102,241,0.3)]" : "text-slate-300 hover:text-white"}`}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <label className="label-text">Title</label>
-                  <input value={itemForm.title} onChange={(event) => setItemForm((current) => ({ ...current, title: event.target.value }))} className="futuristic-input" placeholder="Enter item title" />
                 </div>
 
-                <div className="space-y-2">
-                  <label className="label-text">Category</label>
-                  <select value={itemForm.category} onChange={(event) => setItemForm((current) => ({ ...current, category: event.target.value }))} className="futuristic-select">
-                    <option value="">Select category</option>
-                    {categories.map((category) => (
-                      <option key={category} value={category}>{category}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <label className="label-text">Location</label>
-                  <input value={itemForm.location} onChange={(event) => setItemForm((current) => ({ ...current, location: event.target.value }))} className="futuristic-input" placeholder="Enter location" />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="label-text">Date</label>
-                  <input type="date" value={itemForm.eventDate} onChange={(event) => setItemForm((current) => ({ ...current, eventDate: event.target.value }))} className="futuristic-input" />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="label-text">Description</label>
-                <textarea value={itemForm.description} onChange={(event) => setItemForm((current) => ({ ...current, description: event.target.value }))} rows="4" className="futuristic-input min-h-[120px] resize-none" placeholder="Describe the item, identifying details, and where it was last seen." />
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <label className="label-text">Verification question</label>
-                  <input value={itemForm.verificationQuestion} onChange={(event) => setItemForm((current) => ({ ...current, verificationQuestion: event.target.value }))} className="futuristic-input" placeholder="Ask something only the owner would know" />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="label-text">Verification answer</label>
-                  <input value={itemForm.verificationAnswer} onChange={(event) => setItemForm((current) => ({ ...current, verificationAnswer: event.target.value }))} className="futuristic-input" placeholder="Private answer" />
-                </div>
-              </div>
-
-              <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-                <div
-                  className={`upload-panel ${isDraggingImage ? "upload-panel-active" : ""}`}
-                  onDragOver={(event) => {
-                    event.preventDefault();
-                    setIsDraggingImage(true);
-                  }}
-                  onDragLeave={() => setIsDraggingImage(false)}
-                  onDrop={(event) => {
-                    event.preventDefault();
-                    setIsDraggingImage(false);
-                    const file = event.dataTransfer.files?.[0];
-                    if (file) {
-                      const eventLike = { target: { files: [file] } };
-                      handleImageChange(eventLike);
-                    }
-                  }}
-                >
-                  <input id="item-upload" type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
-                  <label htmlFor="item-upload" className="flex cursor-pointer flex-col items-center justify-center text-center">
-                    <span className="text-3xl text-cyan-300">↑</span>
-                    <span className="mt-4 text-lg font-bold text-white">Upload image</span>
-                    <span className="mt-2 max-w-xs text-sm text-slate-400">Drag & drop or browse</span>
-                    <span className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-500">PNG / JPG / JPEG / GIF</span>
-                    <span className="mt-3 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[10px] uppercase tracking-[0.22em] text-slate-300">Max 10 MB</span>
-                  </label>
-                </div>
-
-                <div className="rounded-3xl border border-white/10 bg-slate-950/40 p-4">
-                  {imagePreview ? (
-                    <div className="space-y-3">
-                      <div className="overflow-hidden rounded-2xl border border-white/10">
-                        <img src={imagePreview} alt="Preview" className="h-52 w-full object-cover" />
-                      </div>
-                      <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-slate-300">
-                        <div>
-                          <p className="font-medium text-white">{selectedImage?.name || "image"}</p>
-                          <p className="text-xs text-slate-400">
-                            {selectedImage ? `${Math.round((selectedImage.size / (1024 * 1024)) * 10) / 10} MB` : ""}
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedImage(null);
-                            setImagePreview("");
-                          }}
-                          className="rounded-xl border border-white/10 bg-slate-900 px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-300 hover:border-red-400/40 hover:text-red-200"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex h-full min-h-[220px] items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/[0.02] text-center text-sm text-slate-500">
-                      No image selected yet.
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <button type="submit" disabled={isSubmittingItem} className="primary-button w-full justify-center">
-                {isSubmittingItem ? "Submitting report..." : "Submit report"}
-              </button>
-            </form>
-          </section>
-        </main>
+                <button type="submit" disabled={isSubmittingItem} className="primary-button w-full justify-center">
+                  {isSubmittingItem ? "Submitting report..." : "Submit report"}
+                </button>
+              </form>
+            </section>
+          </main>
+        </div>
       </div>
 
       {showClaimModal && selectedItem ? (
@@ -824,9 +757,7 @@ function App() {
                 <p className="text-[10px] font-semibold uppercase tracking-[0.32em] text-cyan-300">Secure verification</p>
                 <h3 className="mt-2 text-2xl font-bold text-white">Verify ownership</h3>
               </div>
-              <button type="button" onClick={() => setShowClaimModal(false)} className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-sm text-slate-300 hover:border-white/20">
-                ✕
-              </button>
+              <button type="button" onClick={() => setShowClaimModal(false)} className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-sm text-slate-300 hover:border-white/20">✕</button>
             </div>
 
             <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-slate-300">
@@ -836,28 +767,17 @@ function App() {
             <form onSubmit={handleClaimSubmit} className="mt-5 space-y-4">
               <div className="space-y-2">
                 <label className="label-text">Question</label>
-                <div className="rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3 text-sm text-slate-200">
-                  {selectedItem.verificationQuestion}
-                </div>
+                <div className="rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3 text-sm text-slate-200">{selectedItem.verificationQuestion}</div>
               </div>
 
               <div className="space-y-2">
                 <label className="label-text">Your answer</label>
-                <input
-                  value={claimAnswer}
-                  onChange={(event) => setClaimAnswer(event.target.value)}
-                  className="futuristic-input"
-                  placeholder="Type the answer here..."
-                />
+                <input value={claimAnswer} onChange={(event) => setClaimAnswer(event.target.value)} className="futuristic-input" placeholder="Type the answer here..." />
               </div>
 
               <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                <button type="button" onClick={() => setShowClaimModal(false)} className="secondary-button justify-center sm:w-auto">
-                  Cancel
-                </button>
-                <button type="submit" disabled={isClaiming} className="primary-button justify-center sm:w-auto">
-                  {isClaiming ? "Verifying..." : "Verify & claim"}
-                </button>
+                <button type="button" onClick={() => setShowClaimModal(false)} className="secondary-button justify-center sm:w-auto">Cancel</button>
+                <button type="submit" disabled={isClaiming} className="primary-button justify-center sm:w-auto">{isClaiming ? "Verifying..." : "Verify & claim"}</button>
               </div>
             </form>
           </div>
