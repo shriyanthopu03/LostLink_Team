@@ -8,6 +8,7 @@ import authRoutes from "./src/routes/authRoutes.js";
 import itemRoutes from "./src/routes/itemRoutes.js";
 import claimRoutes from "./src/routes/claimRoutes.js";
 import adminRoutes from "./src/routes/adminRoutes.js";
+import reputationRoutes from "./src/routes/reputationRoutes.js";
 
 dotenv.config();
 
@@ -60,6 +61,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/items", itemRoutes);
 app.use("/api/claims", claimRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/reputation", reputationRoutes);
 
 app.use((err, _req, res, _next) => {
   const status = err.status || 500;

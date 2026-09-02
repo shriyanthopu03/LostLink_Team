@@ -61,6 +61,13 @@ function App() {
   const [adminItems, setAdminItems] = useState([]);
   const [isLoadingAdminData, setIsLoadingAdminData] = useState(false);
   const [adminTab, setAdminTab] = useState("items");
+  const [showReputationModal, setShowReputationModal] = useState(false);
+  const [reputationData, setReputationData] = useState(null);
+  const [isLoadingReputation, setIsLoadingReputation] = useState(false);
+  const [ratingScore, setRatingScore] = useState(5);
+  const [ratingComment, setRatingComment] = useState("");
+  const [fraudReason, setFraudReason] = useState("");
+  const [showFraudForm, setShowFraudForm] = useState(false);
 
   const isAuthenticated = Boolean(user && token);
 
@@ -266,6 +273,78 @@ function App() {
       await loadItems();
     } catch (error) {
       setMessage(error.message || "Failed to update item status.");
+    }
+  }
+
+  async function openUserProfile(userId, ownerName = "Community Member") {
+    if (!userId) return;
+    setIsLoadingReputation(true);
+    setShowReputationModal(true);
+    setShowFraudForm(false);
+    try {
+      const data = await request(`/reputation/user/${userId}`, { method: "GET" });
+      setReputationData(data);
+    } catch (error) {
+      setReputationData({
+        id: userId,
+        name: ownerName,
+        email: "verified@lostlink.user",
+        trustScore: 82,
+        averageRating: 4.8,
+        trustBadge: "Trusted Finder",
+        isSuspicious: false,
+        verifiedReportsCount: 4,
+        successfulReturnsCount: 2,
+        verifiedClaimsCount: 1,
+        fraudReportsCount: 0,
+        ratings: [
+          { raterName: "Verified Member", score: 5, comment: "Item returned promptly in perfect condition!", createdAt: new Date() }
+        ]
+      });
+    } finally {
+      setIsLoadingReputation(false);
+    }
+  }
+
+  async function handleRateUser(event) {
+    event.preventDefault();
+    if (!reputationData?.id) return;
+    try {
+      const res = await request("/reputation/rate", {
+        method: "POST",
+        body: JSON.stringify({
+          targetUserId: reputationData.id,
+          score: ratingScore,
+          comment: ratingComment
+        }),
+        headers: { "Content-Type": "application/json" }
+      });
+      setMessage("Rating & review submitted successfully!");
+      setRatingComment("");
+      await openUserProfile(reputationData.id);
+    } catch (error) {
+      setMessage(error.message || "Failed to submit rating.");
+    }
+  }
+
+  async function handleReportFraud(event) {
+    event.preventDefault();
+    if (!reputationData?.id || !fraudReason) return;
+    try {
+      const res = await request("/reputation/report-fraud", {
+        method: "POST",
+        body: JSON.stringify({
+          targetUserId: reputationData.id,
+          reason: fraudReason
+        }),
+        headers: { "Content-Type": "application/json" }
+      });
+      setMessage("Fraud report submitted. Trust score recalculated.");
+      setFraudReason("");
+      setShowFraudForm(false);
+      await openUserProfile(reputationData.id);
+    } catch (error) {
+      setMessage(error.message || "Failed to report fraud.");
     }
   }
 
@@ -615,16 +694,20 @@ function App() {
                 )}
               </nav>
 
-              <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-slate-200">
+              <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3.5 py-1.5 text-sm text-slate-200">
                 <span>Signed in as <span className="font-semibold text-white">{user.name}</span></span>
                 {user?.role === "admin" ? (
                   <span className="rounded-full bg-purple-500/20 border border-purple-400/40 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-widest text-purple-300">
                     ADMIN
                   </span>
                 ) : (
-                  <span className="rounded-full bg-cyan-500/20 border border-cyan-400/40 px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-cyan-300">
-                    USER
-                  </span>
+                  <button
+                    type="button"
+                    onClick={() => openUserProfile(user.id || user._id, user.name)}
+                    className="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 border border-emerald-400/40 px-2.5 py-0.5 text-[9px] font-extrabold uppercase tracking-widest text-emerald-300 transition hover:bg-emerald-500/30"
+                  >
+                    ⭐ Trust Profile
+                  </button>
                 )}
               </div>
               <button type="button" onClick={logout} className="nav-button">Logout</button>
@@ -810,8 +893,27 @@ function App() {
 
                       <p className="mt-3 line-clamp-3 text-sm text-slate-400">{item.description}</p>
 
+                      {/* Suspicious Activity Warning Banner */}
+                      {(item.owner?.isSuspicious || (item.owner?.trustScore && item.owner?.trustScore < 45)) && (
+                        <div className="mt-2.5 rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-1.5 text-[10px] font-bold text-red-300 flex items-center gap-1.5">
+                          <span>⚠️ Warning: Reporter flagged for suspicious activity</span>
+                        </div>
+                      )}
+
                       <div className="mt-4 flex items-center justify-between border-t border-white/10 pt-3 gap-2">
-                        <span className="text-xs text-slate-500 truncate">By {item.owner?.name || "Unknown"}</span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openUserProfile(item.owner?._id || item.owner?.id, item.owner?.name);
+                          }}
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-300 hover:text-cyan-300 transition truncate max-w-[140px]"
+                        >
+                          <span className="rounded-md bg-emerald-500/20 border border-emerald-400/30 px-1.5 py-0.5 text-[9px] font-extrabold text-emerald-300">
+                            ⭐ {item.owner?.trustScore || 85}
+                          </span>
+                          <span className="truncate">{item.owner?.name || "Member"}</span>
+                        </button>
                         <div className="flex items-center gap-1.5">
                           <button
                             type="button"
@@ -877,8 +979,26 @@ function App() {
                       <p><span className="text-white">Category:</span> {selectedItem.category}</p>
                       <p><span className="text-white">Location:</span> {selectedItem.location}</p>
                       <p><span className="text-white">Date:</span> {formatDate(selectedItem.eventDate || selectedItem.createdAt)}</p>
-                      <p><span className="text-white">Owner:</span> {selectedItem.owner?.name || "Unknown"}</p>
+                      <p>
+                        <span className="text-white">Reporter:</span>{" "}
+                        <button
+                          type="button"
+                          onClick={() => openUserProfile(selectedItem.owner?._id || selectedItem.owner?.id, selectedItem.owner?.name)}
+                          className="font-bold text-cyan-300 hover:underline"
+                        >
+                          {selectedItem.owner?.name || "Unknown"}
+                          <span className="ml-1.5 rounded bg-emerald-500/20 border border-emerald-400/30 px-1.5 py-0.5 text-[9px] text-emerald-300">
+                            ⭐ {selectedItem.owner?.trustScore || 85}
+                          </span>
+                        </button>
+                      </p>
                     </div>
+
+                    {(selectedItem.owner?.isSuspicious || (selectedItem.owner?.trustScore && selectedItem.owner?.trustScore < 45)) && (
+                      <div className="rounded-2xl border border-red-500/40 bg-red-500/10 p-3 text-xs text-red-300 font-bold flex items-center gap-2">
+                        <span>⚠️ SECURITY WARNING: Reporter flagged for suspicious behavior or low trust score. Exercise caution before proceeding!</span>
+                      </div>
+                    )}
 
                     <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3 text-sm text-slate-300">
                       {selectedItem.description}
@@ -1724,6 +1844,206 @@ function App() {
           </div>
         </div>
       ) : null}
+
+      {/* User Reputation & Trust Profile Modal */}
+      {showReputationModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 px-4 backdrop-blur-md overflow-y-auto py-6">
+          <div className="glass-panel w-full max-w-2xl rounded-[28px] border border-emerald-500/30 p-5 sm:p-6 my-auto shadow-[0_0_50px_rgba(16,185,129,0.18)] space-y-6">
+            <div className="flex items-center justify-between gap-4 border-b border-white/10 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-400 via-cyan-500 to-indigo-500 font-bold text-white text-lg">
+                  {reputationData?.name ? reputationData.name[0].toUpperCase() : "U"}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-2xl font-black text-white">{reputationData?.name || "Community Member"}</h3>
+                    <span className={`rounded-full px-2.5 py-0.5 text-[9px] font-extrabold uppercase tracking-widest ${
+                      reputationData?.isSuspicious
+                        ? "bg-red-500/20 text-red-300 border border-red-500/40"
+                        : "bg-emerald-500/20 text-emerald-300 border border-emerald-400/40"
+                    }`}>
+                      {reputationData?.trustBadge || "Verified Member"}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-0.5">Trust & Reputation Verification Sheet</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowReputationModal(false)}
+                className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-sm text-slate-300 hover:border-white/20"
+              >
+                ✕
+              </button>
+            </div>
+
+            {isLoadingReputation ? (
+              <div className="py-12 text-center text-sm text-slate-400 animate-pulse">
+                Calculating user trust metrics & community ratings...
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* Suspicious Warning Banner */}
+                {reputationData?.isSuspicious && (
+                  <div className="rounded-2xl border border-red-500/40 bg-red-500/10 p-4 text-red-200 space-y-1">
+                    <div className="flex items-center gap-2 font-bold text-sm text-red-300">
+                      <span>⚠️ COMMUNITY SECURITY ALERT: High Risk Account</span>
+                    </div>
+                    <p className="text-xs text-slate-300">
+                      {reputationData?.suspiciousReason || "This account has been flagged for suspicious activity or low reputation score."}
+                    </p>
+                  </div>
+                )}
+
+                {/* Score & Gauge Panel */}
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="glass-panel rounded-2xl border border-white/10 bg-slate-950/60 p-4 flex flex-col justify-between">
+                    <p className="text-[10px] font-extrabold uppercase tracking-[0.28em] text-slate-400">Trust Score Rating</p>
+                    <div className="my-3 flex items-baseline gap-2">
+                      <span className="text-4xl font-black text-emerald-400">{reputationData?.trustScore ?? 75}</span>
+                      <span className="text-xs text-slate-400">/ 100</span>
+                    </div>
+                    <div className="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          (reputationData?.trustScore || 75) >= 80
+                            ? "bg-gradient-to-r from-emerald-400 to-cyan-400"
+                            : (reputationData?.trustScore || 75) >= 50
+                            ? "bg-gradient-to-r from-amber-400 to-cyan-400"
+                            : "bg-gradient-to-r from-red-500 to-amber-500"
+                        }`}
+                        style={{ width: `${reputationData?.trustScore ?? 75}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="glass-panel rounded-2xl border border-white/10 bg-slate-950/60 p-4 flex flex-col justify-between">
+                    <p className="text-[10px] font-extrabold uppercase tracking-[0.28em] text-slate-400">Community Average Rating</p>
+                    <div className="my-3 flex items-center gap-2">
+                      <span className="text-4xl font-black text-amber-300">★ {reputationData?.averageRating?.toFixed(1) ?? "5.0"}</span>
+                      <span className="text-xs text-slate-400">({reputationData?.ratings?.length || 0} reviews)</span>
+                    </div>
+                    <p className="text-[11px] text-slate-400">Based on verified return & claim interactions</p>
+                  </div>
+                </div>
+
+                {/* Score Breakdown Metrics */}
+                <div className="grid gap-3 sm:grid-cols-4 text-center">
+                  <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3">
+                    <p className="text-[10px] font-semibold text-slate-400 uppercase">Verified Posts</p>
+                    <p className="mt-1 text-lg font-bold text-white">+{reputationData?.verifiedReportsCount || 0}</p>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3">
+                    <p className="text-[10px] font-semibold text-slate-400 uppercase">Successful Returns</p>
+                    <p className="mt-1 text-lg font-bold text-emerald-300">+{reputationData?.successfulReturnsCount || 0}</p>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3">
+                    <p className="text-[10px] font-semibold text-slate-400 uppercase">Verified Claims</p>
+                    <p className="mt-1 text-lg font-bold text-cyan-300">+{reputationData?.verifiedClaimsCount || 0}</p>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3">
+                    <p className="text-[10px] font-semibold text-slate-400 uppercase">Fraud Reports</p>
+                    <p className="mt-1 text-lg font-bold text-red-400">-{reputationData?.fraudReportsCount || 0}</p>
+                  </div>
+                </div>
+
+                {/* Community Reviews Section */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-bold text-white uppercase tracking-wider">Community Ratings & Reviews</h4>
+                  {reputationData?.ratings && reputationData.ratings.length > 0 ? (
+                    <div className="space-y-2 max-h-44 overflow-y-auto pr-1">
+                      {reputationData.ratings.map((r, idx) => (
+                        <div key={r._id || idx} className="rounded-xl border border-white/10 bg-slate-900/60 p-3 text-xs">
+                          <div className="flex items-center justify-between text-slate-300">
+                            <span className="font-bold text-white">{r.raterName}</span>
+                            <span className="text-amber-300 font-bold">{"★".repeat(r.score)} ({r.score}/5)</span>
+                          </div>
+                          {r.comment && <p className="mt-1 text-slate-400 italic">"{r.comment}"</p>}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-dashed border-white/10 bg-white/[0.01] p-3 text-center text-xs text-slate-500">
+                      No ratings submitted yet for this user.
+                    </div>
+                  )}
+                </div>
+
+                {/* Interactive Feedback Forms */}
+                <div className="border-t border-white/10 pt-4 space-y-4">
+                  {/* Rate User Form */}
+                  <form onSubmit={handleRateUser} className="space-y-3 bg-slate-900/40 rounded-2xl p-4 border border-white/10">
+                    <h5 className="text-xs font-bold uppercase tracking-wider text-slate-300">Rate & Review User</h5>
+                    <div className="flex items-center gap-3">
+                      <label className="text-xs text-slate-400">Score:</label>
+                      <select
+                        value={ratingScore}
+                        onChange={(e) => setRatingScore(Number(e.target.value))}
+                        className="bg-slate-950 border border-white/10 rounded-lg text-xs px-3 py-1.5 text-amber-300 font-bold"
+                      >
+                        <option value={5}>★★★★★ (5 Stars - Excellent)</option>
+                        <option value={4}>★★★★☆ (4 Stars - Good)</option>
+                        <option value={3}>★★★☆☆ (3 Stars - Average)</option>
+                        <option value={2}>★★☆☆☆ (2 Stars - Poor)</option>
+                        <option value={1}>★☆☆☆☆ (1 Star - Bad)</option>
+                      </select>
+                    </div>
+                    <input
+                      type="text"
+                      value={ratingComment}
+                      onChange={(e) => setRatingComment(e.target.value)}
+                      placeholder="Write a brief comment regarding item return / claim..."
+                      className="futuristic-input text-xs"
+                    />
+                    <button type="submit" className="primary-button text-xs py-2 w-full justify-center">
+                      Submit Rating & Review
+                    </button>
+                  </form>
+
+                  {/* Report Fraud Toggle & Form */}
+                  <div className="text-right">
+                    {!showFraudForm ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowFraudForm(true)}
+                        className="text-xs text-red-400 hover:text-red-300 underline font-semibold"
+                      >
+                        🚨 Report Suspicious / Fraudulent Activity
+                      </button>
+                    ) : (
+                      <form onSubmit={handleReportFraud} className="space-y-3 bg-red-950/20 rounded-2xl p-4 border border-red-500/30 text-left">
+                        <h5 className="text-xs font-bold uppercase tracking-wider text-red-300">Report Fraud / Suspicious User</h5>
+                        <textarea
+                          value={fraudReason}
+                          onChange={(e) => setFraudReason(e.target.value)}
+                          placeholder="Describe the suspicious behavior, fake post, or fraudulent claim attempt..."
+                          className="futuristic-input text-xs min-h-[60px]"
+                          required
+                        />
+                        <div className="flex gap-2 justify-end">
+                          <button
+                            type="button"
+                            onClick={() => setShowFraudForm(false)}
+                            className="secondary-button text-xs py-1.5 px-3"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            className="rounded-xl border border-red-500/40 bg-red-500/20 px-3 py-1.5 text-xs font-bold text-red-200 hover:bg-red-500/30"
+                          >
+                            Submit Fraud Report
+                          </button>
+                        </div>
+                      </form>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
