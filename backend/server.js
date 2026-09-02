@@ -10,6 +10,10 @@ import claimRoutes from "./src/routes/claimRoutes.js";
 
 dotenv.config();
 
+// Debug: show working directory and whether MONGO_URI was loaded
+console.log("Server CWD:", process.cwd());
+console.log("MONGO_URI present:", Boolean(process.env.MONGO_URI));
+
 const app = express();
 const port = process.env.PORT || 5000;
 const clientUrl = process.env.CLIENT_URL?.replace(/\/$/, "");
