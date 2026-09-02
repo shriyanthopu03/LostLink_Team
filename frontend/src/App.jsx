@@ -536,27 +536,80 @@ function App() {
 
   if (!isAuthenticated) {
     return (
-      <div className="dashboard-shell min-h-screen px-4 py-8 text-slate-100">
-        <div className="grid-pattern" />
-        <div className="relative mx-auto max-w-md pt-10">
-          <header className="glass-panel rounded-[28px] border border-white/10 p-6 shadow-[0_0_40px_rgba(99,102,241,0.18)]">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.42em] text-cyan-300">LostLink</p>
-            <h1 className="mt-4 text-4xl font-black tracking-tight text-white">Secure digital lost & found</h1>
-            <p className="mt-3 text-sm text-slate-300">Access the live recovery network, verify claims, and report newly found items.</p>
-          </header>
+      <div className="relative min-h-screen overflow-hidden bg-[#07080B] text-slate-100 flex items-center justify-center p-4 sm:p-8">
+        {/* Subtle Ambient Glow Orbs */}
+        <div className="absolute top-0 left-1/4 h-[500px] w-[500px] rounded-full bg-cyan-500/10 blur-[150px] pointer-events-none" />
+        <div className="absolute bottom-0 right-1/4 h-[500px] w-[500px] rounded-full bg-indigo-600/15 blur-[150px] pointer-events-none" />
+        <div className="grid-pattern opacity-30 pointer-events-none" />
 
-          <section className="glass-panel mt-6 rounded-[28px] border border-white/10 p-5">
-            {/* User vs Admin Role Selector */}
-            <div className="mb-4 flex rounded-2xl border border-white/10 bg-slate-950/80 p-1">
+        {/* Main Split-Screen Desktop Container */}
+        <div className="relative z-10 grid w-full max-w-5xl overflow-hidden rounded-[36px] border border-white/10 bg-[#0E1017]/90 shadow-[0_0_80px_rgba(0,0,0,0.8)] backdrop-blur-2xl lg:grid-cols-12">
+          
+          {/* Left Column: 3D Art & Branding Hero Visual */}
+          <div className="relative hidden flex-col justify-between overflow-hidden border-b border-white/10 bg-gradient-to-br from-[#121520] via-[#0E1017] to-[#090A0E] p-10 lg:col-span-6 lg:flex lg:border-b-0 lg:border-r">
+            {/* Background Ambient Radial Light */}
+            <div className="absolute -top-20 -left-20 h-80 w-80 rounded-full bg-[#00C9A7]/15 blur-3xl pointer-events-none" />
+            <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-indigo-500/15 blur-3xl pointer-events-none" />
+
+            {/* Brand Logo Pill */}
+            <div className="relative z-10 flex items-center justify-between">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[#00C9A7]/40 bg-[#00C9A7]/10 px-3.5 py-1.5 text-[10px] font-extrabold uppercase tracking-[0.32em] text-[#00C9A7] shadow-[0_0_15px_rgba(0,201,167,0.25)]">
+                <span className="h-2 w-2 rounded-full bg-[#00C9A7] animate-pulse" />
+                LOSTLINK AI
+              </div>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">RECOVERY NETWORK</span>
+            </div>
+
+            {/* 3D Geometric Visual Element */}
+            <div className="relative z-10 my-auto py-12 text-center">
+              <div className="relative mx-auto flex h-52 w-52 items-center justify-center">
+                <div className="absolute inset-0 animate-spin-slow rounded-full border border-dashed border-[#00C9A7]/30" />
+                <div className="absolute h-40 w-40 rounded-3xl bg-gradient-to-tr from-slate-200/20 via-white/40 to-slate-400/10 shadow-[0_0_50px_rgba(255,255,255,0.15)] backdrop-blur-md rotate-45 transform transition-transform duration-700 hover:rotate-90" />
+                <div className="absolute h-28 w-28 rounded-2xl bg-gradient-to-br from-[#00C9A7]/40 via-cyan-500/30 to-indigo-600/40 shadow-[0_0_35px_rgba(0,201,167,0.3)] backdrop-blur-lg -rotate-12" />
+                <div className="relative text-4xl font-black tracking-tight text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.8)]">
+                  L
+                </div>
+              </div>
+
+              <h2 className="mt-8 text-3xl font-black tracking-tight text-white">
+                Welcome to <span className="bg-gradient-to-r from-white via-cyan-200 to-[#00C9A7] bg-clip-text text-transparent">LostLink</span>
+              </h2>
+              <p className="mt-3 text-xs text-slate-400 max-w-xs mx-auto leading-relaxed">
+                The next-generation AI-powered lost & found platform with verified returns and community trust scoring.
+              </p>
+            </div>
+
+            {/* Bottom System Status Badge */}
+            <div className="relative z-10 flex items-center justify-between border-t border-white/10 pt-4 text-[11px] text-slate-500 font-medium">
+              <span>● 99.4% Match Precision</span>
+              <span>Encrypted JWT & Firebase</span>
+            </div>
+          </div>
+
+          {/* Right Column: Exact Form Container (Stated/klad.design layout) */}
+          <div className="flex flex-col justify-center p-6 sm:p-10 lg:col-span-6">
+            
+            {/* Top Heading */}
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
+                {authRole === "admin" ? "Admin Authentication" : authMode === "register" ? "Create Account" : "Sign in to LostLink"}
+              </h2>
+              <p className="mt-1.5 text-xs text-slate-400">
+                {authRole === "admin" ? "Enter system administrator credentials" : "Enter your credentials to access your dashboard"}
+              </p>
+            </div>
+
+            {/* User vs Admin Role Selector Pill */}
+            <div className="mb-5 flex rounded-2xl border border-white/10 bg-[#161822] p-1.5 backdrop-blur-md">
               <button
                 type="button"
                 onClick={() => {
                   setAuthRole("user");
                   setMessage("Sign in or create a standard user account.");
                 }}
-                className={`flex-1 rounded-xl px-3 py-2 text-xs font-bold uppercase tracking-wider transition ${
+                className={`flex-1 rounded-xl px-3 py-2.5 text-xs font-bold uppercase tracking-wider transition-all duration-300 ${
                   authRole === "user"
-                    ? "bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-400 text-white shadow-[0_0_20px_rgba(99,102,241,0.3)]"
+                    ? "bg-[#00C9A7] text-slate-950 shadow-[0_0_20px_rgba(0,201,167,0.35)] font-extrabold"
                     : "text-slate-400 hover:text-white"
                 }`}
               >
@@ -569,9 +622,9 @@ function App() {
                   setAuthMode("login");
                   setMessage("Restricted access: Admin credentials required.");
                 }}
-                className={`flex-1 rounded-xl px-3 py-2 text-xs font-bold uppercase tracking-wider transition ${
+                className={`flex-1 rounded-xl px-3 py-2.5 text-xs font-bold uppercase tracking-wider transition-all duration-300 ${
                   authRole === "admin"
-                    ? "bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 text-white shadow-[0_0_20px_rgba(168,85,247,0.3)]"
+                    ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-[0_0_20px_rgba(168,85,247,0.35)] font-extrabold"
                     : "text-slate-400 hover:text-white"
                 }`}
               >
@@ -579,15 +632,15 @@ function App() {
               </button>
             </div>
 
-            {/* Mode Switcher: Login vs Register (Disabled for Admin) */}
+            {/* Login vs Register Mode Segment (User Mode) */}
             {authRole === "user" ? (
-              <div className="mb-5 flex rounded-2xl border border-white/10 bg-slate-950/60 p-1">
+              <div className="mb-5 flex rounded-xl border border-white/10 bg-[#161822] p-1">
                 <button
                   type="button"
                   onClick={() => setAuthMode("login")}
-                  className={`flex-1 rounded-xl px-3 py-2 text-xs font-semibold transition ${
+                  className={`flex-1 rounded-lg px-3 py-2 text-xs font-bold transition-all duration-300 ${
                     authMode === "login"
-                      ? "bg-white/10 text-white shadow"
+                      ? "bg-white/15 text-white shadow"
                       : "text-slate-400 hover:text-white"
                   }`}
                 >
@@ -596,9 +649,9 @@ function App() {
                 <button
                   type="button"
                   onClick={() => setAuthMode("register")}
-                  className={`flex-1 rounded-xl px-3 py-2 text-xs font-semibold transition ${
+                  className={`flex-1 rounded-lg px-3 py-2 text-xs font-bold transition-all duration-300 ${
                     authMode === "register"
-                      ? "bg-white/10 text-white shadow"
+                      ? "bg-white/15 text-white shadow"
                       : "text-slate-400 hover:text-white"
                   }`}
                 >
@@ -606,51 +659,81 @@ function App() {
                 </button>
               </div>
             ) : (
-              <div className="mb-5 rounded-2xl border border-purple-500/30 bg-purple-500/10 p-3 text-center">
+              <div className="mb-5 rounded-xl border border-purple-500/30 bg-purple-500/10 p-3 text-center">
                 <span className="text-[11px] font-extrabold uppercase tracking-wider text-purple-200">
                   🛡️ Restricted Admin Access
                 </span>
-                <p className="mt-1 text-[11px] text-slate-400">
+                <p className="mt-0.5 text-[11px] text-slate-400">
                   Admin registration is disabled. System authentication requires environment credentials.
                 </p>
               </div>
             )}
 
-            <form className="space-y-3" onSubmit={handleAuthSubmit}>
+            {/* Input Form */}
+            <form className="space-y-4" onSubmit={handleAuthSubmit}>
               {authRole === "user" && authMode === "register" && (
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Name</label>
+                  <input
+                    type="text"
+                    value={authForm.name}
+                    onChange={(event) => setAuthForm((current) => ({ ...current, name: event.target.value }))}
+                    className="w-full rounded-xl border border-white/10 bg-[#161822] px-4 py-3.5 text-sm text-white placeholder:text-slate-500 focus:border-[#00C9A7] focus:outline-none transition-all duration-300"
+                    placeholder="Full Name"
+                    required
+                  />
+                </div>
+              )}
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Email</label>
                 <input
-                  type="text"
-                  value={authForm.name}
-                  onChange={(event) => setAuthForm((current) => ({ ...current, name: event.target.value }))}
-                  className="futuristic-input"
-                  placeholder="Full name"
+                  type="email"
+                  value={authForm.email}
+                  onChange={(event) => setAuthForm((current) => ({ ...current, email: event.target.value }))}
+                  className="w-full rounded-xl border border-white/10 bg-[#161822] px-4 py-3.5 text-sm text-white placeholder:text-slate-500 focus:border-[#00C9A7] focus:outline-none transition-all duration-300"
+                  placeholder={authRole === "admin" ? "Admin Email (admin@lostlink.com)" : "Email address"}
                   required
                 />
-              )}
-              <input
-                type="email"
-                value={authForm.email}
-                onChange={(event) => setAuthForm((current) => ({ ...current, email: event.target.value }))}
-                className="futuristic-input"
-                placeholder={authRole === "admin" ? "Admin Email (e.g. admin@lostlink.com)" : "Email address"}
-                required
-              />
-              <input
-                type="password"
-                value={authForm.password}
-                onChange={(event) => setAuthForm((current) => ({ ...current, password: event.target.value }))}
-                className="futuristic-input"
-                placeholder={authRole === "admin" ? "Admin Password" : "Password"}
-                required
-              />
-              <button type="submit" disabled={isAuthenticating} className="primary-button w-full justify-center">
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Password</label>
+                <input
+                  type="password"
+                  value={authForm.password}
+                  onChange={(event) => setAuthForm((current) => ({ ...current, password: event.target.value }))}
+                  className="w-full rounded-xl border border-white/10 bg-[#161822] px-4 py-3.5 text-sm text-white placeholder:text-slate-500 focus:border-[#00C9A7] focus:outline-none transition-all duration-300"
+                  placeholder="Password"
+                  required
+                />
+              </div>
+
+              {/* Secondary Feature Row: Toggle / "Remain on the system" */}
+              <div className="flex items-center justify-between pt-1 text-xs text-slate-400">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    defaultChecked
+                    className="h-4 w-4 rounded border-white/10 bg-[#161822] text-[#00C9A7] focus:ring-0 cursor-pointer"
+                  />
+                  <span>Remain on the system</span>
+                </label>
+              </div>
+
+              {/* Main Action CTA Button ("Enter") */}
+              <button
+                type="submit"
+                disabled={isAuthenticating}
+                className="w-full justify-center rounded-xl bg-[#00C9A7] px-4 py-3.5 text-sm font-extrabold text-slate-950 shadow-[0_0_25px_rgba(0,201,167,0.35)] transition-all duration-300 hover:bg-[#00E5FF] hover:shadow-[0_0_35px_rgba(0,229,255,0.45)] active:scale-[0.99] disabled:opacity-50"
+              >
                 {isAuthenticating
                   ? "Authenticating..."
                   : authRole === "admin"
-                  ? "Login as Administrator"
+                  ? "Enter as Administrator"
                   : authMode === "register"
-                  ? "Create Account"
-                  : "Login"}
+                  ? "Create Account & Enter"
+                  : "Enter"}
               </button>
             </form>
 
@@ -658,7 +741,7 @@ function App() {
             {authRole === "user" && (
               <div className="mt-5 pt-4 border-t border-white/10 space-y-3">
                 <div className="relative flex items-center justify-center">
-                  <span className="bg-slate-900/90 px-3 text-[10px] uppercase font-bold text-slate-400 tracking-widest z-10 rounded-full border border-white/10">
+                  <span className="bg-[#0E1017] px-3 text-[10px] uppercase font-bold text-slate-500 tracking-widest z-10">
                     OR
                   </span>
                   <div className="absolute inset-0 flex items-center">
@@ -670,7 +753,7 @@ function App() {
                   type="button"
                   onClick={handleFirebaseGoogleSignIn}
                   disabled={isAuthenticating}
-                  className="w-full flex items-center justify-center gap-3 rounded-2xl bg-white px-4 py-3 text-sm font-bold text-slate-900 shadow-[0_0_25px_rgba(255,255,255,0.15)] transition-all duration-300 hover:bg-slate-100 hover:shadow-[0_0_30px_rgba(255,255,255,0.25)] active:scale-[0.99]"
+                  className="w-full flex items-center justify-center gap-3 rounded-xl bg-white px-4 py-3.5 text-sm font-bold text-slate-900 shadow-[0_0_20px_rgba(255,255,255,0.12)] transition-all duration-300 hover:bg-slate-100 hover:shadow-[0_0_30px_rgba(255,255,255,0.25)] active:scale-[0.99]"
                 >
                   <svg className="h-5 w-5" viewBox="0 0 24 24">
                     <path
@@ -694,9 +777,9 @@ function App() {
                 </button>
               </div>
             )}
-          </section>
 
-          <p className="mt-4 text-center text-sm text-slate-400">{message}</p>
+            <p className="mt-4 text-center text-xs font-semibold text-slate-400">{message}</p>
+          </div>
         </div>
       </div>
     );
