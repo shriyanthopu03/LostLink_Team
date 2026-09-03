@@ -17,6 +17,7 @@ router.post("/:itemId", authMiddleware, async (req, res, next) => {
       });
     }
 
+    phoneNumber: verified ? item.phoneNumber : undefined,
     const item = await Item.findById(req.params.itemId);
 
     if (!item) {

@@ -514,6 +514,9 @@ function App() {
         headers: { "Content-Type": "application/json" }
       });
 
+      if (data.verified) {
+        window.alert(`Claim verified successfully!\nContact phone number: ${data.phoneNumber || selectedItem.phoneNumber || "Not provided"}`);
+      }
       setMessage(data.verified ? "Claim verified. Item has been removed." : "Claim failed verification.");
       setClaimAnswer("");
       setShowClaimModal(false);

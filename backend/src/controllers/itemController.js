@@ -11,6 +11,7 @@ const safeItem = (item) => ({
   category: item.category,
   description: item.description,
   location: item.location,
+  phoneNumber: item.phoneNumber,
   eventDate: item.eventDate,
   imageUrl: item.imageUrl || "",
   imagePublicId: item.imagePublicId || "",
