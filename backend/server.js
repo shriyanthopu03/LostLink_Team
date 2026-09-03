@@ -38,6 +38,23 @@ app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan("dev"));
 
+// Root endpoint
+app.get("/", (_req, res) => {
+  res.json({ 
+    message: "LostLink API Server", 
+    version: "1.0.0",
+    status: "running",
+    endpoints: {
+      health: "/api/health",
+      auth: "/api/auth",
+      items: "/api/items",
+      claims: "/api/claims",
+      admin: "/api/admin",
+      reputation: "/api/reputation"
+    }
+  });
+});
+
 app.get("/api/health", async (_req, res) => {
   try {
     await connectDB();
