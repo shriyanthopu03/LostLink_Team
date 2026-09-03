@@ -8,6 +8,7 @@ const itemSchema = new mongoose.Schema(
     category: { type: String, required: true, trim: true },
     description: { type: String, required: true, trim: true },
     location: { type: String, required: true, trim: true },
+    phoneNumber: { type: String, required: true, trim: true },
     eventDate: { type: Date, required: true },
     imageUrl: { type: String, default: "" },
     imagePublicId: { type: String, default: "" },

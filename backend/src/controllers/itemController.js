@@ -94,9 +94,9 @@ export const listItems = async (req, res, next) => {
 
 export const createItem = async (req, res, next) => {
   try {
-    const { type, title, category, description, location, eventDate, verificationQuestion, verificationAnswer } = req.body;
+    const { type, title, category, description, location, phoneNumber, eventDate, verificationQuestion, verificationAnswer } = req.body;
 
-    if (!type || !title || !category || !description || !location || !eventDate || !verificationQuestion || !verificationAnswer) {
+    if (!type || !title || !category || !description || !location || !phoneNumber || !eventDate || !verificationQuestion || !verificationAnswer) {
       return res.status(400).json({ message: "All required item fields must be provided" });
     }
 
@@ -110,6 +110,7 @@ export const createItem = async (req, res, next) => {
       category,
       description,
       location,
+      phoneNumber,
       eventDate,
       imageUrl: uploaded.imageUrl,
       imagePublicId: uploaded.imagePublicId,

@@ -17,6 +17,7 @@ const defaultForm = {
   category: "",
   description: "",
   location: "",
+  phoneNumber: "",
   eventDate: "",
   verificationQuestion: "",
   verificationAnswer: ""
@@ -433,7 +434,7 @@ function App() {
     setIsSubmittingItem(true);
     try {
       // Validate required fields before submitting
-      const requiredFields = ["type", "title", "category", "description", "location", "eventDate", "verificationQuestion", "verificationAnswer"];
+      const requiredFields = ["type", "title", "category", "description", "location", "phoneNumber", "eventDate", "verificationQuestion", "verificationAnswer"];
       const missingFields = requiredFields.filter(field => !itemForm[field] || itemForm[field].trim() === "");
       
       if (missingFields.length > 0) {
@@ -1834,6 +1835,7 @@ function App() {
                   <label><span>Title</span><input value={itemForm.title} onChange={(event) => setItemForm((current) => ({ ...current, title: event.target.value }))} placeholder="Enter item title" /></label>
                   <label><span>Category</span><select value={itemForm.category} onChange={(event) => setItemForm((current) => ({ ...current, category: event.target.value }))}><option value="">Select category</option>{categories.map((category) => <option key={category} value={category}>{category}</option>)}</select></label>
                   <label><span>Location</span><input value={itemForm.location} onChange={(event) => setItemForm((current) => ({ ...current, location: event.target.value }))} placeholder="Enter location" /></label>
+                  <label><span>Phone number</span><input type="tel" value={itemForm.phoneNumber} onChange={(event) => setItemForm((current) => ({ ...current, phoneNumber: event.target.value }))} placeholder="Enter phone number" /></label>
                   <label><span>Date</span><input type="date" value={itemForm.eventDate} onChange={(event) => setItemForm((current) => ({ ...current, eventDate: event.target.value }))} /></label>
                 </div>
 
@@ -1894,6 +1896,11 @@ function App() {
                 <div className="space-y-2">
                   <label className="label-text">Location</label>
                   <input value={itemForm.location} onChange={(event) => setItemForm((current) => ({ ...current, location: event.target.value }))} className="futuristic-input" placeholder="Enter location" />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="label-text">Phone number</label>
+                  <input type="tel" value={itemForm.phoneNumber} onChange={(event) => setItemForm((current) => ({ ...current, phoneNumber: event.target.value }))} className="futuristic-input" placeholder="Enter phone number" />
                 </div>
 
                 <div className="space-y-2">
