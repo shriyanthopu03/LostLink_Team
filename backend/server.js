@@ -85,16 +85,15 @@ app.use((err, _req, res, _next) => {
 connectDB()
   .then(() => {
     console.log("MongoDB connected successfully");
-    if (process.env.NODE_ENV !== "production") {
-      app.listen(port, () => {
-        console.log(`LostLink API running on port ${port}`);
-      });
-    }
+    // Always start the server, regardless of NODE_ENV
+    app.listen(port, () => {
+      console.log(`LostLink API running on port ${port}`);
+    });
   })
   .catch((error) => {
     console.error("Failed to connect to MongoDB:", error.message);
     console.error("Please check your MONGO_URI environment variable");
-    if (process.env.NODE_ENV !== "production") process.exit(1);
+    process.exit(1);
   });
 
 export default app;

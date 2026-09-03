@@ -1,4 +1,8 @@
 import mongoose from "mongoose";
+import dotenv from "dotenv";
+
+// Ensure env vars are loaded when this config is imported
+dotenv.config();
 
 let connectionPromise;
 
