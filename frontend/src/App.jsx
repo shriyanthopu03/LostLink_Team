@@ -649,18 +649,6 @@ function App() {
                   setMessage("Sign in or create a standard user account.");
                 }}
               >
-                @@      // Prevent claiming demo items
-                @@      if (selectedItem.id.startsWith("demo-")) {
-                @@        setMessage("Cannot claim demo items. Please post or select a real lost/found item to claim.");
-                @@        setIsClaiming(false);
-                @@        return;
-                @@      }
-                @@
-                @@      const data = await request(`/claims/${selectedItem.id}`, {
-                @@        method: "POST",
-                @@        body: JSON.stringify({ answer: claimAnswer }),
-                @@        headers: { "Content-Type": "application/json" }
-                @@      });
                 👤 User Login
               </button>
               <button
