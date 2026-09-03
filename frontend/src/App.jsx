@@ -1,10 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { app as firebaseApp, analytics, auth, googleProvider, signInWithPopup } from "./firebase.js";
 
-const API_URL =
-  typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
-    ? "http://localhost:5000/api"
-    : import.meta.env.VITE_API_URL || "https://lost-link-team-backend.vercel.app/api";
+// Use environment variable for API URL, always prioritize VITE_API_URL from .env
+const API_URL = import.meta.env.VITE_API_URL || "https://lost-link-team-backend.vercel.app/api";
+
+// Log the API URL being used
+console.log("🔧 LostLink App Initialized");
+console.log("🌐 API_URL:", API_URL);
+console.log("📦 VITE_API_URL from .env:", import.meta.env.VITE_API_URL);
+
 const fallbackImage = "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1200&q=80";
 
 const defaultForm = {
