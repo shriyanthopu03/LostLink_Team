@@ -428,9 +428,19 @@ function App() {
 
     setIsSubmittingItem(true);
     try {
+      // Validate required fields before submitting
+      const requiredFields = ["type", "title", "category", "description", "location", "eventDate", "verificationQuestion", "verificationAnswer"];
+      const missingFields = requiredFields.filter(field => !itemForm[field] || itemForm[field].trim() === "");
+      
+      if (missingFields.length > 0) {
+        setMessage(`Please fill in all required fields: ${missingFields.join(", ")}`);
+        setIsSubmittingItem(false);
+        return;
+      }
+
       const formData = new FormData();
       Object.entries(itemForm).forEach(([key, value]) => {
-        if (value) formData.append(key, value);
+        formData.append(key, value);
       });
 
       if (selectedImage) {
