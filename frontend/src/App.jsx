@@ -1389,15 +1389,6 @@ function App() {
           <section className="grid gap-4 sm:grid-cols-3">
             <div className="glass-panel rounded-2xl border border-white/10 bg-slate-950/40 p-4">
               <div className="flex items-center justify-between text-xs text-slate-400">
-                <span>Indexed Network DB</span>
-                <span className="text-cyan-300">✓ Ready</span>
-              </div>
-              <p className="mt-2 text-2xl font-black text-white">{items.length * 5 + 16} Candidates</p>
-              <p className="mt-1 text-[11px] text-slate-400">Analyzed by vector match matrix</p>
-            </div>
-
-            <div className="glass-panel rounded-2xl border border-white/10 bg-slate-950/40 p-4">
-              <div className="flex items-center justify-between text-xs text-slate-400">
                 <span>High Confidence Matches</span>
                 <span className="text-emerald-400">● Active</span>
               </div>
