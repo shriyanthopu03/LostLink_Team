@@ -513,11 +513,16 @@ function App() {
         headers: { "Content-Type": "application/json" }
       });
 
-      setMessage(data.verified ? "Claim verified. Item can be returned." : "Claim failed verification.");
+      setMessage(data.verified ? "Claim verified. Item has been removed." : "Claim failed verification.");
       setClaimAnswer("");
       setShowClaimModal(false);
       await loadItems();
-      await loadMatches(selectedItem.id);
+      if (data.verified) {
+        setSelectedItem(null);
+        setMatches([]);
+      } else {
+        await loadMatches(selectedItem.id);
+      }
     } catch (error) {
       setMessage(error.message || "Unable to submit claim");
     } finally {
