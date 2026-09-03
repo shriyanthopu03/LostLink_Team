@@ -442,6 +442,13 @@ function App() {
         return;
       }
 
+      // Validate image size (max 10MB)
+      if (selectedImage && selectedImage.size > 10 * 1024 * 1024) {
+        setMessage("Image size must be less than 10MB");
+        setIsSubmittingItem(false);
+        return;
+      }
+
       const formData = new FormData();
       Object.entries(itemForm).forEach(([key, value]) => {
         formData.append(key, value);
@@ -451,23 +458,38 @@ function App() {
         formData.append("image", selectedImage);
       }
 
-      const response = await fetch(`${API_URL}/items`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData
-      });
+      // Create AbortController for timeout handling
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
 
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(result.message || "Unable to submit item");
+      try {
+        const response = await fetch(`${API_URL}/items`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+          signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(result.message || "Unable to submit item");
+        }
+
+        setItemForm(defaultForm);
+        setSelectedImage(null);
+        setImagePreview("");
+        setMessage("Report submitted successfully.");
+        await loadItems();
+        setCurrentPage("dashboard");
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        if (fetchError.name === "AbortError") {
+          throw new Error("Upload took too long. Please try with a smaller image or check your connection.");
+        }
+        throw fetchError;
       }
-
-      setItemForm(defaultForm);
-      setSelectedImage(null);
-      setImagePreview("");
-      setMessage("Report submitted successfully.");
-      await loadItems();
-      setCurrentPage("dashboard");
     } catch (error) {
       setMessage(error.message || "Unable to submit item");
     } finally {
@@ -621,12 +643,19 @@ function App() {
                   setAuthRole("user");
                   setMessage("Sign in or create a standard user account.");
                 }}
-                className={`flex-1 rounded-xl px-3 py-2.5 text-xs font-bold uppercase tracking-wider transition-all duration-300 ${
-                  authRole === "user"
-                    ? "bg-[#00C9A7] text-slate-950 shadow-[0_0_20px_rgba(0,201,167,0.35)] font-extrabold"
-                    : "text-slate-400 hover:text-white"
-                }`}
               >
+                @@      // Prevent claiming demo items
+                @@      if (selectedItem.id.startsWith("demo-")) {
+                @@        setMessage("Cannot claim demo items. Please post or select a real lost/found item to claim.");
+                @@        setIsClaiming(false);
+                @@        return;
+                @@      }
+                @@
+                @@      const data = await request(`/claims/${selectedItem.id}`, {
+                @@        method: "POST",
+                @@        body: JSON.stringify({ answer: claimAnswer }),
+                @@        headers: { "Content-Type": "application/json" }
+                @@      });
                 👤 User Login
               </button>
               <button

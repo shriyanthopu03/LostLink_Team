@@ -26,7 +26,8 @@ const uploadImageToCloudinary = async (file) => {
   }
 
   if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
-    throw new Error("Cloudinary is not configured. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET.");
+    console.warn("Cloudinary is not configured. Skipping image upload.");
+    return { imageUrl: "", imagePublicId: "" };
   }
 
   try {
@@ -35,7 +36,8 @@ const uploadImageToCloudinary = async (file) => {
         {
           folder: "lost-and-found/items",
           resource_type: "image",
-          transformation: [{ quality: "auto", fetch_format: "auto" }]
+          transformation: [{ quality: "auto", fetch_format: "auto" }],
+          timeout: 30000
         },
         (error, result) => {
           if (error) {
@@ -46,6 +48,12 @@ const uploadImageToCloudinary = async (file) => {
         }
       );
 
+      // Add error handler to stream
+      stream.on("error", (error) => {
+        reject(new Error(`Stream error: ${error.message}`));
+      });
+
+      // Pipe file buffer to stream
       stream.end(file.buffer);
     });
 
@@ -54,7 +62,9 @@ const uploadImageToCloudinary = async (file) => {
       imagePublicId: uploadResult.public_id
     };
   } catch (error) {
-    throw new Error(`Image upload failed: ${error.message || "Cloudinary upload error"}`);
+    console.error("Cloudinary upload error:", error.message);
+    // If Cloudinary fails, continue without image rather than failing the entire request
+    return { imageUrl: "", imagePublicId: "" };
   }
 };
 

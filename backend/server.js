@@ -34,9 +34,18 @@ app.use(cors({
   },
   credentials: true
 }));
-app.use(express.json({ limit: "2mb" }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(morgan("dev"));
+
+// Set request timeout for Vercel compatibility (file uploads)
+app.use((req, res, next) => {
+  res.setTimeout(30000, () => {
+    console.error("Request timeout");
+    res.status(408).json({ message: "Request timeout" });
+  });
+  next();
+});
 
 // Root endpoint
 app.get("/", (_req, res) => {
